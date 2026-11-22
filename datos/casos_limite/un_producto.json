@@ -1,0 +1,7 @@
+{
+  "escenario": "Un producto",
+  "masa_disponible_g": 250,
+  "productos": [
+    {"nombre": "Producto A", "gramos_por_pieza": 80, "demanda": 5}
+  ]
+}

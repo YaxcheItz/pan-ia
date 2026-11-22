@@ -1,0 +1,61 @@
+archivo,escenario,metodo,semilla,producto,demanda,piezas_recomendadas,piezas_pendientes,gramos_por_pieza,masa_asignada_g,cobertura_pct
+masa_cero.json,Masa cero,proporcional,,Producto A,60,0,60,80,0,0.00
+masa_cero.json,Masa cero,proporcional,,Producto B,35,0,35,100,0,0.00
+masa_cero.json,Masa cero,proporcional,,Producto C,25,0,25,120,0,0.00
+masa_cero.json,Masa cero,genetico,7,Producto A,60,0,60,80,0,0.00
+masa_cero.json,Masa cero,genetico,7,Producto B,35,0,35,100,0,0.00
+masa_cero.json,Masa cero,genetico,7,Producto C,25,0,25,120,0,0.00
+masa_cero.json,Masa cero,genetico,21,Producto A,60,0,60,80,0,0.00
+masa_cero.json,Masa cero,genetico,21,Producto B,35,0,35,100,0,0.00
+masa_cero.json,Masa cero,genetico,21,Producto C,25,0,25,120,0,0.00
+masa_cero.json,Masa cero,genetico,42,Producto A,60,0,60,80,0,0.00
+masa_cero.json,Masa cero,genetico,42,Producto B,35,0,35,100,0,0.00
+masa_cero.json,Masa cero,genetico,42,Producto C,25,0,25,120,0,0.00
+masa_cero.json,Masa cero,genetico,84,Producto A,60,0,60,80,0,0.00
+masa_cero.json,Masa cero,genetico,84,Producto B,35,0,35,100,0,0.00
+masa_cero.json,Masa cero,genetico,84,Producto C,25,0,25,120,0,0.00
+masa_cero.json,Masa cero,genetico,123,Producto A,60,0,60,80,0,0.00
+masa_cero.json,Masa cero,genetico,123,Producto B,35,0,35,100,0,0.00
+masa_cero.json,Masa cero,genetico,123,Producto C,25,0,25,120,0,0.00
+masa_exacta.json,Masa exacta,proporcional,,Producto A,60,60,0,80,4800,100.00
+masa_exacta.json,Masa exacta,proporcional,,Producto B,35,35,0,100,3500,100.00
+masa_exacta.json,Masa exacta,proporcional,,Producto C,25,25,0,120,3000,100.00
+masa_exacta.json,Masa exacta,genetico,7,Producto A,60,60,0,80,4800,100.00
+masa_exacta.json,Masa exacta,genetico,7,Producto B,35,35,0,100,3500,100.00
+masa_exacta.json,Masa exacta,genetico,7,Producto C,25,25,0,120,3000,100.00
+masa_exacta.json,Masa exacta,genetico,21,Producto A,60,60,0,80,4800,100.00
+masa_exacta.json,Masa exacta,genetico,21,Producto B,35,35,0,100,3500,100.00
+masa_exacta.json,Masa exacta,genetico,21,Producto C,25,25,0,120,3000,100.00
+masa_exacta.json,Masa exacta,genetico,42,Producto A,60,60,0,80,4800,100.00
+masa_exacta.json,Masa exacta,genetico,42,Producto B,35,35,0,100,3500,100.00
+masa_exacta.json,Masa exacta,genetico,42,Producto C,25,25,0,120,3000,100.00
+masa_exacta.json,Masa exacta,genetico,84,Producto A,60,60,0,80,4800,100.00
+masa_exacta.json,Masa exacta,genetico,84,Producto B,35,35,0,100,3500,100.00
+masa_exacta.json,Masa exacta,genetico,84,Producto C,25,25,0,120,3000,100.00
+masa_exacta.json,Masa exacta,genetico,123,Producto A,60,60,0,80,4800,100.00
+masa_exacta.json,Masa exacta,genetico,123,Producto B,35,35,0,100,3500,100.00
+masa_exacta.json,Masa exacta,genetico,123,Producto C,25,25,0,120,3000,100.00
+toda_demanda_cero.json,Toda la demanda en cero,proporcional,,Producto A,0,0,0,80,0,
+toda_demanda_cero.json,Toda la demanda en cero,proporcional,,Producto B,0,0,0,100,0,
+toda_demanda_cero.json,Toda la demanda en cero,proporcional,,Producto C,0,0,0,120,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,7,Producto A,0,0,0,80,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,7,Producto B,0,0,0,100,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,7,Producto C,0,0,0,120,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,21,Producto A,0,0,0,80,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,21,Producto B,0,0,0,100,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,21,Producto C,0,0,0,120,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,42,Producto A,0,0,0,80,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,42,Producto B,0,0,0,100,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,42,Producto C,0,0,0,120,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,84,Producto A,0,0,0,80,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,84,Producto B,0,0,0,100,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,84,Producto C,0,0,0,120,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,123,Producto A,0,0,0,80,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,123,Producto B,0,0,0,100,0,
+toda_demanda_cero.json,Toda la demanda en cero,genetico,123,Producto C,0,0,0,120,0,
+un_producto.json,Un producto,proporcional,,Producto A,5,3,2,80,240,60.00
+un_producto.json,Un producto,genetico,7,Producto A,5,3,2,80,240,60.00
+un_producto.json,Un producto,genetico,21,Producto A,5,3,2,80,240,60.00
+un_producto.json,Un producto,genetico,42,Producto A,5,3,2,80,240,60.00
+un_producto.json,Un producto,genetico,84,Producto A,5,3,2,80,240,60.00
+un_producto.json,Un producto,genetico,123,Producto A,5,3,2,80,240,60.00

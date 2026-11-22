@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Planificador de producción de pan</title>
+    <link rel="stylesheet" href="/panel.css">
+    <script src="/panel.js" defer></script>
+</head>
+<body>
+    <main class="contenedor">
+        <header class="encabezado">
+            <div>
+                <p>Inteligencia Artificial · Grupo 9SA</p>
+                <h1>Producción de pan</h1>
+            </div>
+            <button type="button" class="boton boton-secundario" id="pantalla" hidden>Pantalla completa</button>
+        </header>
+
+        <form class="controles superficie" id="controles">
+            <div class="campo campo-escenario">
+                <label for="escenario">Escenario</label>
+                <select id="escenario" required disabled></select>
+            </div>
+            <div class="campo">
+                <label for="masa">Masa disponible (g)</label>
+                <input id="masa" type="number" inputmode="numeric" min="0" step="1" required disabled>
+            </div>
+            <div class="campo">
+                <label for="semilla">Semilla</label>
+                <input id="semilla" type="number" step="1" value="42" required disabled>
+            </div>
+            <button type="submit" class="boton boton-primario" id="calcular" disabled>Calcular plan</button>
+        </form>
+        <p class="estado" id="estado" role="status">Cargando los escenarios…</p>
+        <noscript><p class="estado">Activa JavaScript en el navegador para usar el panel.</p></noscript>
+
+        <div id="resultado" hidden>
+            <section aria-labelledby="escenario-titulo" class="resumen">
+                <div class="titulo-resultados">
+                    <h2 id="escenario-titulo"></h2>
+                    <p id="contexto"></p>
+                </div>
+                <dl class="indicadores">
+                    <div class="indicador">
+                        <dt>Piezas del plan genético</dt>
+                        <dd id="piezas-totales"></dd>
+                        <dd class="aclaracion" id="cobertura-total"></dd>
+                    </div>
+                    <div class="indicador">
+                        <dt>Cobertura mínima</dt>
+                        <dd id="cobertura-minima"></dd>
+                        <dd class="aclaracion">Producto menos atendido</dd>
+                    </div>
+                    <div class="indicador">
+                        <dt>Masa usada</dt>
+                        <dd id="masa-usada"></dd>
+                        <dd class="aclaracion" id="masa-total"></dd>
+                    </div>
+                    <div class="indicador">
+                        <dt>Masa sobrante</dt>
+                        <dd id="masa-sobrante"></dd>
+                    </div>
+                </dl>
+            </section>
+
+            <div class="reparto">
+                <section aria-labelledby="produccion-titulo">
+                    <header class="titulo-seccion">
+                        <h2 id="produccion-titulo">Plan por producto</h2>
+                        <p>La masa asignada y la cobertura corresponden al plan genético.</p>
+                    </header>
+                    <div class="tabla-contenedor">
+                        <table class="tabla-adaptable tabla-productos" role="table" aria-labelledby="produccion-titulo">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Producto</th>
+                                    <th scope="col">Demanda</th>
+                                    <th scope="col" class="col-genetico">Genético</th>
+                                    <th scope="col">Proporcional</th>
+                                    <th scope="col">Masa asignada</th>
+                                    <th scope="col">Cobertura</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productos"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="comparacion" aria-labelledby="comparacion-titulo">
+                    <header class="titulo-seccion encabezado-comparacion">
+                        <h2 id="comparacion-titulo">Comparación de métodos</h2>
+                        <button type="button" class="boton boton-secundario" id="comparar-semillas"
+                                aria-controls="resumen-semillas" aria-expanded="false">
+                            Comparar 5 semillas
+                        </button>
+                    </header>
+                    <div class="veredicto" id="veredicto">
+                        <strong id="ganador"></strong>
+                        <p id="motivo"></p>
+                    </div>
+                    <table class="tabla-comparacion">
+                        <thead>
+                            <tr>
+                                <th scope="col">Criterio</th>
+                                <th scope="col" class="col-genetico">Genético</th>
+                                <th scope="col">Proporcional</th>
+                            </tr>
+                        </thead>
+                        <tbody id="criterios"></tbody>
+                    </table>
+                    <details class="criterios">
+                        <summary>Cómo se decide</summary>
+                        <ol>
+                            <li>Mejor cobertura del producto menos atendido.</li>
+                            <li>Más piezas si empata la cobertura mínima.</li>
+                            <li>Más gramos usados si también empatan las piezas.</li>
+                        </ol>
+                    </details>
+                </section>
+            </div>
+
+            <section class="bloque semillas" id="resumen-semillas" aria-labelledby="semillas-titulo" hidden>
+                <header class="titulo-seccion">
+                    <h2 id="semillas-titulo" tabindex="-1">Comparación de cinco semillas</h2>
+                    <p id="conteo-semillas"></p>
+                </header>
+                <div class="tabla-contenedor">
+                    <table class="tabla-adaptable tabla-semillas" role="table" aria-labelledby="semillas-titulo">
+                        <thead>
+                            <tr>
+                                <th scope="col">Semilla</th>
+                                <th scope="col">Cobertura mínima</th>
+                                <th scope="col">Piezas</th>
+                                <th scope="col">Masa usada</th>
+                                <th scope="col">Resultado del genético</th>
+                                <th scope="col">Criterio decisivo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="semillas"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <details class="bloque apertura" id="detalle-evolucion">
+                <summary>Evolución del algoritmo <small id="modo-evolucion"></small></summary>
+                <div class="detalle-contenido">
+                    <header class="encabezado-evolucion" id="opciones-evolucion">
+                        <p id="configuracion"></p>
+                        <div class="campo">
+                            <label for="metrica">Métrica de la gráfica</label>
+                            <select id="metrica">
+                                <option value="cobertura_minima_pct">Cobertura mínima</option>
+                                <option value="piezas_totales">Piezas totales</option>
+                                <option value="masa_usada_g">Masa usada</option>
+                            </select>
+                        </div>
+                    </header>
+                    <p id="solucion-directa" class="aviso-directo" hidden></p>
+                    <div id="evolucion-grafica">
+                        <div class="leyenda">
+                            <span><i class="trazo" aria-hidden="true"></i> Mejor genético</span>
+                            <span><i class="trazo trazo-referencia" aria-hidden="true"></i> Reparto proporcional</span>
+                        </div>
+                        <canvas id="grafica" role="img" aria-label="Gráfica de evolución del plan por generación"
+                                aria-describedby="lectura-generacion"></canvas>
+                        <div class="control-generacion">
+                            <label for="generacion">Explorar generación</label>
+                            <input type="range" id="generacion" min="0" max="160" value="160">
+                            <output for="generacion" id="lectura-generacion"></output>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <details class="bloque apertura" id="registros">
+            <summary>Registros CSV</summary>
+            <div class="detalle-contenido registros">
+                <p>Resultados del lote de demostración.</p>
+                <a href="/registros/corridas.csv" download>Corridas</a>
+                <a href="/registros/detalle_productos.csv" download>Detalle por producto</a>
+                <a href="/registros/evolucion.csv" download>Evolución</a>
+            </div>
+        </details>
+    </main>
+</body>
+</html>

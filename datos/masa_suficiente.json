@@ -1,0 +1,9 @@
+{
+  "escenario": "Masa suficiente",
+  "masa_disponible_g": 13000,
+  "productos": [
+    {"nombre": "Producto A", "gramos_por_pieza": 80, "demanda": 60},
+    {"nombre": "Producto B", "gramos_por_pieza": 100, "demanda": 35},
+    {"nombre": "Producto C", "gramos_por_pieza": 120, "demanda": 25}
+  ]
+}

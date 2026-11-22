@@ -1,0 +1,25 @@
+archivo,escenario,metodo,semilla,masa_disponible_g,demanda_total,poblacion,generaciones_configuradas,torneo,prob_cruce,prob_mutacion,elitismo,generaciones_ejecutadas,trivial,aptitud_minima,piezas_totales,masa_usada_g,cobertura_minima_pct,cobertura_total_pct,masa_sobrante_g,resultado_vs_proporcional,criterio_decisivo
+demanda_cero_producto_b.json,Demanda cero del producto B,proporcional,,3000,85,,,,,,,,,9/25,33,3000,36.00,38.82,0,,
+demanda_cero_producto_b.json,Demanda cero del producto B,genetico,7,3000,85,80,160,3,0.85,0.15,1,160,no,11/30,32,2960,36.67,37.65,40,gana,cobertura_minima
+demanda_cero_producto_b.json,Demanda cero del producto B,genetico,21,3000,85,80,160,3,0.85,0.15,1,160,no,11/30,32,2960,36.67,37.65,40,gana,cobertura_minima
+demanda_cero_producto_b.json,Demanda cero del producto B,genetico,42,3000,85,80,160,3,0.85,0.15,1,160,no,11/30,32,2960,36.67,37.65,40,gana,cobertura_minima
+demanda_cero_producto_b.json,Demanda cero del producto B,genetico,84,3000,85,80,160,3,0.85,0.15,1,160,no,11/30,32,2960,36.67,37.65,40,gana,cobertura_minima
+demanda_cero_producto_b.json,Demanda cero del producto B,genetico,123,3000,85,80,160,3,0.85,0.15,1,160,no,11/30,32,2960,36.67,37.65,40,gana,cobertura_minima
+escasez_extrema.json,Escasez extrema,proporcional,,150,120,,,,,,,,,0/1,1,80,0.00,0.83,70,,
+escasez_extrema.json,Escasez extrema,genetico,7,150,120,80,160,3,0.85,0.15,1,160,no,0/1,1,120,0.00,0.83,30,gana,masa_usada_g
+escasez_extrema.json,Escasez extrema,genetico,21,150,120,80,160,3,0.85,0.15,1,160,no,0/1,1,120,0.00,0.83,30,gana,masa_usada_g
+escasez_extrema.json,Escasez extrema,genetico,42,150,120,80,160,3,0.85,0.15,1,160,no,0/1,1,120,0.00,0.83,30,gana,masa_usada_g
+escasez_extrema.json,Escasez extrema,genetico,84,150,120,80,160,3,0.85,0.15,1,160,no,0/1,1,120,0.00,0.83,30,gana,masa_usada_g
+escasez_extrema.json,Escasez extrema,genetico,123,150,120,80,160,3,0.85,0.15,1,160,no,0/1,1,120,0.00,0.83,30,gana,masa_usada_g
+escasez_moderada.json,Escasez moderada con 10 kg,proporcional,,10000,120,,,,,,,,,22/25,106,9980,88.00,88.33,20,,
+escasez_moderada.json,Escasez moderada con 10 kg,genetico,7,10000,120,80,160,3,0.85,0.15,1,160,no,22/25,106,9980,88.00,88.33,20,empata,
+escasez_moderada.json,Escasez moderada con 10 kg,genetico,21,10000,120,80,160,3,0.85,0.15,1,160,no,22/25,106,9980,88.00,88.33,20,empata,
+escasez_moderada.json,Escasez moderada con 10 kg,genetico,42,10000,120,80,160,3,0.85,0.15,1,160,no,22/25,106,9980,88.00,88.33,20,empata,
+escasez_moderada.json,Escasez moderada con 10 kg,genetico,84,10000,120,80,160,3,0.85,0.15,1,160,no,22/25,106,9980,88.00,88.33,20,empata,
+escasez_moderada.json,Escasez moderada con 10 kg,genetico,123,10000,120,80,160,3,0.85,0.15,1,160,no,22/25,106,9980,88.00,88.33,20,empata,
+masa_suficiente.json,Masa suficiente,proporcional,,13000,120,,,,,,,,,1/1,120,11300,100.00,100.00,1700,,
+masa_suficiente.json,Masa suficiente,genetico,7,13000,120,80,160,3,0.85,0.15,1,0,si,1/1,120,11300,100.00,100.00,1700,empata,
+masa_suficiente.json,Masa suficiente,genetico,21,13000,120,80,160,3,0.85,0.15,1,0,si,1/1,120,11300,100.00,100.00,1700,empata,
+masa_suficiente.json,Masa suficiente,genetico,42,13000,120,80,160,3,0.85,0.15,1,0,si,1/1,120,11300,100.00,100.00,1700,empata,
+masa_suficiente.json,Masa suficiente,genetico,84,13000,120,80,160,3,0.85,0.15,1,0,si,1/1,120,11300,100.00,100.00,1700,empata,
+masa_suficiente.json,Masa suficiente,genetico,123,13000,120,80,160,3,0.85,0.15,1,0,si,1/1,120,11300,100.00,100.00,1700,empata,
