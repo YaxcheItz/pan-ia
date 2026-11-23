@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from .genetico import SEMILLAS_DEMOSTRACION, Configuracion, optimizar
-from .modelo import Escenario, Plan, leer_escenario, medir
+from .modelo import Escenario, Plan, Producto, leer_escenario, medir, validar_escenario
 from .proporcional import repartir
 from .reportes import ARCHIVOS_CSV, comparar_aptitudes
 
@@ -63,15 +63,26 @@ def _comparacion(plan: Plan, referencia: Plan) -> dict:
     return {"resultado": resultado, "criterio": criterio}
 
 
+def _configuracion_panel(configuracion: Configuracion) -> dict:
+    return {**asdict(configuracion), "elitismo": configuracion.elitismo}
+
+
 def calcular_panel(
-    escenario: Escenario, masa: int, semilla: int, comparar_semillas: bool
+    escenario: Escenario, masa: int, semilla: int, comparar_semillas: bool, *,
+    configuracion: Configuracion = CONFIGURACION,
+    productos_editados: tuple[Producto, ...] | None = None,
+    semillas_comparacion: tuple[int, ...] = SEMILLAS_DEMOSTRACION,
 ) -> dict:
     if masa < 0:
         raise ValueError("Escribe una masa disponible mayor o igual a cero.")
-    jornada = replace(escenario, masa_disponible_g=masa)
+    jornada = replace(
+        escenario,
+        masa_disponible_g=masa,
+        productos=escenario.productos if productos_editados is None else productos_editados,
+    )
     demanda_total = jornada.demanda_total
     proporcional = repartir(jornada)
-    genetico = optimizar(jornada, semilla, CONFIGURACION)
+    genetico = optimizar(jornada, semilla, configuracion)
 
     productos = []
     for producto, piezas, referencia in zip(
@@ -89,8 +100,8 @@ def calcular_panel(
 
     semillas = []
     if comparar_semillas:
-        for valor in SEMILLAS_DEMOSTRACION:
-            corrida = genetico if valor == semilla else optimizar(jornada, valor, CONFIGURACION)
+        for valor in semillas_comparacion:
+            corrida = genetico if valor == semilla else optimizar(jornada, valor, configuracion)
             semillas.append({
                 "semilla": valor,
                 **_metricas(jornada, corrida.plan),
@@ -101,8 +112,9 @@ def calcular_panel(
         "nombre": jornada.nombre,
         "masa_disponible_g": masa,
         "masa_modificada": masa != escenario.masa_disponible_g,
+        "productos_modificados": jornada.productos != escenario.productos,
         "demanda_total": demanda_total,
-        "configuracion": {**asdict(CONFIGURACION), "elitismo": CONFIGURACION.elitismo},
+        "configuracion": _configuracion_panel(configuracion),
         "genetico": {
             **_metricas(jornada, genetico.plan),
             "semilla": semilla,
@@ -122,6 +134,44 @@ def calcular_panel(
         "productos": productos,
         "semillas": semillas,
     }
+
+
+def _calcular_plan_editado(escenarios: dict[str, Escenario], datos: object) -> dict:
+    if not isinstance(datos, dict):
+        raise ValueError("Envía los datos del plan en un objeto JSON.")
+    identificador = datos.get("escenario")
+    if not isinstance(identificador, str):
+        raise ValueError("Selecciona un escenario de la lista.")
+    escenario = escenarios.get(identificador)
+    if escenario is None and identificador != "personalizado":
+        raise ValueError("Selecciona un escenario de la lista.")
+    jornada = validar_escenario({
+        "escenario": escenario.nombre if escenario else "Simulación personalizada",
+        "masa_disponible_g": datos.get(
+            "masa_disponible_g", escenario.masa_disponible_g if escenario else None
+        ),
+        "productos": datos.get(
+            "productos", [asdict(p) for p in escenario.productos] if escenario else None
+        ),
+    })
+    semilla = datos.get("semilla", 42)
+    if type(semilla) is not int:
+        raise ValueError("Escribe una semilla entera.")
+
+    opciones = datos.get("configuracion", {})
+    if not isinstance(opciones, dict) or opciones.keys() - asdict(CONFIGURACION).keys():
+        raise ValueError("Usa los parámetros de búsqueda disponibles en el panel.")
+    configuracion = replace(CONFIGURACION, **opciones)
+
+    semillas = datos.get("semillas_comparacion", [])
+    if not isinstance(semillas, list) or any(type(valor) is not int for valor in semillas):
+        raise ValueError("Escribe números enteros en la lista de semillas.")
+    return calcular_panel(
+        escenario or jornada, jornada.masa_disponible_g, semilla, bool(semillas),
+        configuracion=configuracion,
+        productos_editados=jornada.productos,
+        semillas_comparacion=tuple(dict.fromkeys(semillas)),
+    )
 
 
 class _PeticionPanel(BaseHTTPRequestHandler):
@@ -181,9 +231,14 @@ class _PeticionPanel(BaseHTTPRequestHandler):
             self._enviar(IDENTIDAD_PANEL, "text/plain")
         elif ruta.path == "/api/escenarios":
             self._json([
-                {"id": clave, "nombre": esc.nombre, "masa_disponible_g": esc.masa_disponible_g}
+                {"id": clave, **asdict(esc)}
                 for clave, esc in self.server.escenarios.items()
             ])
+        elif ruta.path == "/api/configuracion":
+            self._json({
+                "configuracion": _configuracion_panel(CONFIGURACION),
+                "semillas": SEMILLAS_DEMOSTRACION,
+            })
         elif ruta.path == "/api/plan":
             self._calcular(ruta.query)
         elif ruta.path in REGISTROS:
@@ -193,6 +248,32 @@ class _PeticionPanel(BaseHTTPRequestHandler):
             self._enviar(b"", "image/x-icon", 204)
         else:
             self._json({"error": "La página solicitada no existe."}, 404)
+
+    def do_POST(self):
+        if urlsplit(self.path).path != "/api/plan":
+            self._json({"error": "La página solicitada no existe."}, 404)
+            return
+        if self.headers.get_content_type() != "application/json":
+            self._json({"error": "Envía los datos del plan en formato JSON."}, 415)
+            return
+        try:
+            longitud = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            longitud = 0
+        if not 0 < longitud <= 1_048_576:
+            self._json({"error": "La solicitud debe contener hasta 1 MB de datos JSON."}, 400)
+            return
+        try:
+            datos = json.loads(self.rfile.read(longitud))
+        except (ValueError, RecursionError):
+            self._json({"error": "El contenido de la solicitud debe ser JSON válido."}, 400)
+            return
+        try:
+            plan = _calcular_plan_editado(self.server.escenarios, datos)
+        except ValueError as error:
+            self._json({"error": str(error)}, 400)
+            return
+        self._json(plan)
 
 
 class ServidorPanel(ThreadingHTTPServer):

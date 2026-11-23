@@ -15,10 +15,14 @@ El navegador abre el panel en `http://127.0.0.1:8765/`. Puedes cerrar la termina
 Para ver los mensajes del servidor en la terminal puedes ejecutar `python -m pan_optimizador interfaz`. En ese modo, `Ctrl+C` cierra el panel.
 
 1. Empieza con **Escasez moderada con 10 kg**. El panel carga la semilla 42 y muestra 106 piezas, 9 980 g usados y 20 g sobrantes. Puedes editar los gramos disponibles o la semilla y pulsar **Calcular plan**.
-2. Selecciona **Demanda cero del producto B** y pulsa **Comparar 5 semillas**. Revisa la cobertura mínima y el total de piezas de cada método. Selecciona **Escasez extrema** para mostrar el desempate por masa usada.
+2. Selecciona **Demanda cero del producto B** y pulsa **Comparar semillas**. Revisa la cobertura mínima y el total de piezas de cada método. Selecciona **Escasez extrema** para mostrar el desempate por masa usada.
 3. Abre **Evolución del algoritmo** y mueve el control de generación para ver el valor de cada etapa. Usa **Pantalla completa** para proyectar el panel.
 
-El selector incluye los cuatro escenarios centrales y los cuatro casos límite. **Registros CSV** permite descargar las evidencias del lote de demostración. Cada cambio de masa se aplica a la simulación en pantalla.
+Abre **Editar productos** para cambiar nombres, gramos por pieza y demandas, o para agregar y quitar panes. Elige **Personalizado** para empezar con un formulario vacío. Al elegir otro escenario se cargan sus datos. **Restaurar datos del escenario** vuelve a aplicar su masa y sus productos originales.
+
+En **Parámetros del algoritmo** puedes ajustar la población, las generaciones, el tamaño del torneo, los porcentajes de cruce y mutación y las semillas que quieres comparar. El elitismo conserva una copia del mejor plan. Si configuras cero generaciones, el genético elige el mejor plan de la población inicial cuando el caso requiere búsqueda.
+
+**Registros CSV** permite descargar las evidencias del lote de demostración.
 
 ## Ejecutar en terminal
 

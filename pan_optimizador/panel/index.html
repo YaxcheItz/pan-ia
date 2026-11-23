@@ -17,20 +17,84 @@
             <button type="button" class="boton boton-secundario" id="pantalla" hidden>Pantalla completa</button>
         </header>
 
-        <form class="controles superficie" id="controles">
-            <div class="campo campo-escenario">
-                <label for="escenario">Escenario</label>
-                <select id="escenario" required disabled></select>
+        <form class="superficie" id="controles" novalidate>
+            <div class="controles">
+                <div class="campo campo-escenario">
+                    <label for="escenario">Escenario</label>
+                    <select id="escenario" required disabled></select>
+                </div>
+                <div class="campo">
+                    <label for="masa">Masa disponible (g)</label>
+                    <input id="masa" type="number" inputmode="numeric" min="0" step="1" required disabled>
+                </div>
+                <div class="campo">
+                    <label for="semilla">Semilla</label>
+                    <input id="semilla" type="number" step="1" value="42" required disabled>
+                </div>
+                <button type="submit" class="boton boton-primario" id="calcular" disabled>Calcular plan</button>
             </div>
-            <div class="campo">
-                <label for="masa">Masa disponible (g)</label>
-                <input id="masa" type="number" inputmode="numeric" min="0" step="1" required disabled>
+
+            <div class="editores">
+                <details class="apertura editor" id="editar-productos">
+                    <summary>Editar productos <small id="cantidad-productos"></small></summary>
+                    <div class="editor-contenido">
+                        <div id="productos-edicion" class="productos-edicion"></div>
+                        <div class="acciones-editor">
+                            <button type="button" class="boton boton-secundario" id="agregar-producto" disabled>Agregar pan</button>
+                            <button type="button" class="boton boton-secundario" id="restaurar-escenario" disabled>Restaurar datos del escenario</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="apertura editor" id="editar-parametros">
+                    <summary>Parámetros del algoritmo</summary>
+                    <div class="editor-contenido">
+                        <div class="parametros-edicion">
+                            <div class="campo">
+                                <label for="poblacion">Población</label>
+                                <input id="poblacion" type="number" inputmode="numeric" min="2" step="1" required disabled>
+                            </div>
+                            <div class="campo">
+                                <label for="generaciones">Generaciones</label>
+                                <input id="generaciones" type="number" inputmode="numeric" min="0" step="1" required disabled>
+                            </div>
+                            <div class="campo">
+                                <label for="torneo">Candidatos por torneo</label>
+                                <input id="torneo" type="number" inputmode="numeric" min="2" step="1" required disabled>
+                            </div>
+                            <div class="campo">
+                                <label for="prob-cruce">Cruce (%)</label>
+                                <input id="prob-cruce" type="number" inputmode="decimal" min="0" max="100" step="any" required disabled>
+                            </div>
+                            <div class="campo">
+                                <label for="prob-mutacion">Mutación (%)</label>
+                                <input id="prob-mutacion" type="number" inputmode="decimal" min="0" max="100" step="any" required disabled>
+                            </div>
+                            <div class="campo semillas-edicion">
+                                <label for="semillas-comparacion">Semillas para comparar</label>
+                                <input id="semillas-comparacion" type="text" autocomplete="off" aria-describedby="ayuda-semillas" disabled>
+                                <small id="ayuda-semillas">Separa los números con comas.</small>
+                            </div>
+                        </div>
+                        <div class="acciones-editor">
+                            <p>El elitismo conserva el mejor plan de cada ronda. Valor fijo de <strong id="valor-elitismo"></strong>.</p>
+                            <button type="button" class="boton boton-secundario" id="restaurar-parametros" disabled>Restaurar parámetros</button>
+                        </div>
+                    </div>
+                </details>
+                <div class="aplicar-editor">
+                    <button type="submit" class="boton boton-primario" id="aplicar-cambios" disabled>Aplicar cambios</button>
+                </div>
             </div>
-            <div class="campo">
-                <label for="semilla">Semilla</label>
-                <input id="semilla" type="number" step="1" value="42" required disabled>
-            </div>
-            <button type="submit" class="boton boton-primario" id="calcular" disabled>Calcular plan</button>
+
+            <template id="plantilla-producto">
+                <div class="producto-edicion">
+                    <label class="campo"><span>Nombre</span><input name="nombre" type="text" required></label>
+                    <label class="campo"><span>Gramos por pieza</span><input name="gramos_por_pieza" type="number" inputmode="numeric" min="1" step="1" required></label>
+                    <label class="campo"><span>Demanda (piezas)</span><input name="demanda" type="number" inputmode="numeric" min="0" step="1" required></label>
+                    <button type="button" class="boton boton-secundario quitar-producto">Quitar</button>
+                </div>
+            </template>
         </form>
         <p class="estado" id="estado" role="status">Cargando los escenarios…</p>
         <noscript><p class="estado">Activa JavaScript en el navegador para usar el panel.</p></noscript>
@@ -38,7 +102,7 @@
         <div id="resultado" hidden>
             <section aria-labelledby="escenario-titulo" class="resumen">
                 <div class="titulo-resultados">
-                    <h2 id="escenario-titulo"></h2>
+                    <h2 id="escenario-titulo" tabindex="-1"></h2>
                     <p id="contexto"></p>
                 </div>
                 <dl class="indicadores">
@@ -92,7 +156,7 @@
                         <h2 id="comparacion-titulo">Comparación de métodos</h2>
                         <button type="button" class="boton boton-secundario" id="comparar-semillas"
                                 aria-controls="resumen-semillas" aria-expanded="false">
-                            Comparar 5 semillas
+                            Comparar semillas
                         </button>
                     </header>
                     <div class="veredicto" id="veredicto">
@@ -122,7 +186,7 @@
 
             <section class="bloque semillas" id="resumen-semillas" aria-labelledby="semillas-titulo" hidden>
                 <header class="titulo-seccion">
-                    <h2 id="semillas-titulo" tabindex="-1">Comparación de cinco semillas</h2>
+                    <h2 id="semillas-titulo" tabindex="-1">Comparación de semillas</h2>
                     <p id="conteo-semillas"></p>
                 </header>
                 <div class="tabla-contenedor">
@@ -147,7 +211,7 @@
                 <div class="detalle-contenido">
                     <header class="encabezado-evolucion" id="opciones-evolucion">
                         <p id="configuracion"></p>
-                        <div class="campo">
+                        <div class="campo" id="campo-metrica">
                             <label for="metrica">Métrica de la gráfica</label>
                             <select id="metrica">
                                 <option value="cobertura_minima_pct">Cobertura mínima</option>

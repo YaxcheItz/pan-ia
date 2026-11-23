@@ -4,6 +4,7 @@ const porId = (id) => document.getElementById(id);
 const texto = (id, valor) => { porId(id).textContent = valor; };
 const formatoNumero = new Intl.NumberFormat("es-MX");
 const numero = (valor) => formatoNumero.format(valor).replaceAll(",", "\u202f");
+const formatoDecimal = new Intl.NumberFormat("es-ES", { maximumSignificantDigits: 12 });
 const formatoPorcentaje = new Intl.NumberFormat("es-ES", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -32,12 +33,22 @@ const formulario = porId("controles");
 const selector = porId("escenario");
 const campoMasa = porId("masa");
 const campoSemilla = porId("semilla");
+const productosEdicion = porId("productos-edicion");
+const campoSemillas = porId("semillas-comparacion");
+const camposConfiguracion = {
+    poblacion: porId("poblacion"),
+    generaciones: porId("generaciones"),
+    torneo: porId("torneo"),
+    prob_cruce: porId("prob-cruce"),
+    prob_mutacion: porId("prob-mutacion"),
+};
 const comparar = porId("comparar-semillas");
 const metricaGrafica = porId("metrica");
 const generacion = porId("generacion");
 const grafica = porId("grafica");
 const escenarios = new Map();
 let planActual = null;
+let valoresIniciales;
 
 function actualizarEstado(mensaje, { error = false, soloLectores = false } = {}) {
     const estado = porId("estado");
@@ -50,13 +61,14 @@ function ocuparControles(ocupado) {
     for (const control of [...formulario.elements, comparar]) {
         control.disabled = ocupado;
     }
+    if (!ocupado) actualizarEditorProductos();
     porId("resultado").setAttribute("aria-busy", String(ocupado));
 }
 
-async function pedirDatos(url) {
+async function pedirDatos(url, opciones) {
     let respuesta;
     try {
-        respuesta = await fetch(url);
+        respuesta = await fetch(url, opciones);
     } catch {
         throw new Error("El servidor local dejó de responder. Abre «Abrir interfaz.cmd» y vuelve a pulsar Calcular plan.");
     }
@@ -149,7 +161,12 @@ function mostrarPlan(datos) {
     planActual = datos;
     const resultado = datos.genetico;
     const config = datos.configuracion;
-    const titulo = datos.masa_modificada ? `Simulación con ${gramos(datos.masa_disponible_g)}` : datos.nombre;
+    let titulo = datos.nombre;
+    if (datos.productos_modificados) {
+        titulo = "Simulación personalizada";
+    } else if (datos.masa_modificada) {
+        titulo = `Simulación con ${gramos(datos.masa_disponible_g)}`;
+    }
     texto("escenario-titulo", titulo);
     texto("contexto", `Semilla ${numero(resultado.semilla)}`);
     texto("piezas-totales", `${numero(resultado.piezas_totales)} de ${numero(datos.demanda_total)}`);
@@ -161,8 +178,12 @@ function mostrarPlan(datos) {
     mostrarProductos(datos.productos);
     mostrarComparacion(datos);
     mostrarSemillas(datos.semillas);
-    texto("modo-evolucion", resultado.trivial ? "Cálculo directo" : `${resultado.generaciones_ejecutadas} generaciones`);
-    texto("configuracion", `${resultado.generaciones_ejecutadas} generaciones ejecutadas · Población ${config.poblacion} · Torneo ${config.torneo} · Cruce ${Math.round(config.prob_cruce * 100)} % · Mutación ${Math.round(config.prob_mutacion * 100)} % · Elitismo ${config.elitismo}`);
+    const rondas = resultado.generaciones_ejecutadas;
+    let modo = `${numero(rondas)} ${rondas === 1 ? "generación" : "generaciones"}`;
+    if (resultado.trivial) modo = "Cálculo directo";
+    else if (!rondas) modo = "Solo población inicial";
+    texto("modo-evolucion", modo);
+    texto("configuracion", `Población ${numero(config.poblacion)} · Torneo ${numero(config.torneo)} · Cruce ${formatoDecimal.format(config.prob_cruce * 100)} % · Mutación ${formatoDecimal.format(config.prob_mutacion * 100)} % · Elitismo ${config.elitismo}`);
     if (resultado.trivial) {
         let motivo = "La masa alcanza para cubrir toda la demanda.";
         if (!datos.demanda_total) {
@@ -171,18 +192,21 @@ function mostrarPlan(datos) {
             motivo = "Con la masa disponible no cabe ninguna pieza solicitada.";
         }
         texto("solucion-directa", `${motivo} El programa registró el resultado en la generación 0.`);
+    } else if (!rondas) {
+        texto("solucion-directa", "El programa eligió el mejor plan de la población inicial. Configura una generación o más para ver la evolución.");
     }
-    porId("solucion-directa").hidden = !resultado.trivial;
+    porId("solucion-directa").hidden = rondas > 0;
     porId("opciones-evolucion").hidden = resultado.trivial;
-    porId("evolucion-grafica").hidden = resultado.trivial;
-    generacion.max = resultado.generaciones_ejecutadas;
-    generacion.value = resultado.generaciones_ejecutadas;
+    porId("campo-metrica").hidden = !rondas;
+    porId("evolucion-grafica").hidden = !rondas;
+    generacion.max = rondas;
+    generacion.value = rondas;
     porId("resultado").hidden = false;
     actualizarGeneracion();
 }
 
 function actualizarGeneracion() {
-    if (!planActual || planActual.genetico.trivial) return;
+    if (!planActual?.genetico.generaciones_ejecutadas) return;
     const indice = Number(generacion.value);
     const medidas = planActual.genetico.historial[indice];
     const lectura = `Generación ${indice} · ${porcentaje(medidas.cobertura_minima_pct)} · ${numero(medidas.piezas_totales)} piezas · ${gramos(medidas.masa_usada_g)}`;
@@ -192,8 +216,12 @@ function actualizarGeneracion() {
 }
 
 function escalaGrafica(valores, porcentual) {
-    const inferior = Math.min(...valores);
-    const superior = Math.max(...valores);
+    let inferior = Infinity;
+    let superior = -Infinity;
+    for (const valor of valores) {
+        inferior = Math.min(inferior, valor);
+        superior = Math.max(superior, valor);
+    }
     const intervalo = (superior - inferior || Math.max(1, superior * .04)) / 4;
     const potencia = 10 ** Math.floor(Math.log10(intervalo));
     const multiplo = [1, 2, 5, 10].find((valor) => valor * potencia >= intervalo);
@@ -214,7 +242,7 @@ function escalaGrafica(valores, porcentual) {
 }
 
 function dibujarGrafica() {
-    if (!planActual || planActual.genetico.trivial) return;
+    if (!planActual?.genetico.generaciones_ejecutadas) return;
     const ancho = grafica.clientWidth;
     const alto = grafica.clientHeight;
     if (!ancho || !alto) return;
@@ -258,8 +286,9 @@ function dibujarGrafica() {
     }
 
     ctx.textAlign = "center";
-    for (let i = 0; i <= 4; i += 1) {
-        const indice = Math.round(i * ultimo / 4);
+    const marcasGeneracion = Math.min(4, ultimo);
+    for (let i = 0; i <= marcasGeneracion; i += 1) {
+        const indice = Math.round(i * ultimo / marcasGeneracion);
         ctx.fillText(indice, x(indice), alto - 9);
     }
 
@@ -297,26 +326,62 @@ function dibujarGrafica() {
     grafica.setAttribute("aria-label", `${nombre} por generación. Inicio ${formato(valores[0])}, final ${formato(valores.at(-1))}, referencia ${formato(referencia)}.`);
 }
 
-async function calcular(compararSemillas = false) {
-    if (!formulario.reportValidity()) return;
-    if (![campoMasa.valueAsNumber, campoSemilla.valueAsNumber].every(Number.isSafeInteger)) {
-        actualizarEstado("Escribe números enteros en masa disponible y semilla.", { error: true });
-        return;
+function leerSolicitud(compararSemillas) {
+    const { poblacion, torneo } = camposConfiguracion;
+    torneo.setCustomValidity(torneo.valueAsNumber > poblacion.valueAsNumber
+        ? "El torneo debe tener como máximo tantos candidatos como la población." : "");
+    const invalido = [...formulario.elements].find((control) =>
+        control.willValidate && (!control.validity.valid
+            || (control.type === "number" && control.step === "1" && !Number.isSafeInteger(control.valueAsNumber)))
+    );
+    if (invalido) {
+        const editor = invalido.closest("details");
+        if (editor) editor.open = true;
+        actualizarEstado(invalido.validationMessage || "Escribe un número entero dentro del rango admitido.", { error: true });
+        invalido.focus();
+        invalido.reportValidity();
+        return null;
     }
-    const parametros = new URLSearchParams({
+    const semillas = compararSemillas ? campoSemillas.value.trim().split(/[,\s]+/) : [];
+    if (semillas.some((semilla) => !/^[+-]?\d+$/.test(semilla) || !Number.isSafeInteger(Number(semilla)))) {
+        porId("editar-parametros").open = true;
+        actualizarEstado("Escribe una o más semillas enteras separadas con comas.", { error: true });
+        campoSemillas.focus();
+        return null;
+    }
+
+    return {
         escenario: selector.value,
-        masa: campoMasa.valueAsNumber,
+        masa_disponible_g: campoMasa.valueAsNumber,
         semilla: campoSemilla.valueAsNumber,
-        comparar: compararSemillas ? "1" : "0",
-    });
+        productos: [...productosEdicion.children].map((fila) => ({
+            nombre: fila.querySelector('[name="nombre"]').value.trim(),
+            gramos_por_pieza: fila.querySelector('[name="gramos_por_pieza"]').valueAsNumber,
+            demanda: fila.querySelector('[name="demanda"]').valueAsNumber,
+        })),
+        configuracion: Object.fromEntries(Object.entries(camposConfiguracion).map(([clave, campo]) =>
+            [clave, clave.startsWith("prob_") ? campo.valueAsNumber / 100 : campo.valueAsNumber]
+        )),
+        semillas_comparacion: semillas.map(Number),
+    };
+}
+
+async function calcular(compararSemillas = false) {
+    const solicitud = leerSolicitud(compararSemillas);
+    if (!solicitud) return;
 
     ocuparControles(true);
-    actualizarEstado(compararSemillas ? "Calculando la comparación de cinco semillas…" : "Calculando el plan de producción…");
+    actualizarEstado(compararSemillas ? "Comparando las semillas seleccionadas…" : "Calculando el plan de producción…");
     try {
-        const datos = await pedirDatos(`/api/plan?${parametros}`);
+        const datos = await pedirDatos("/api/plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(solicitud),
+        });
         actualizarEstado("Plan actualizado.", { soloLectores: true });
         mostrarPlan(datos);
         if (compararSemillas) porId("semillas-titulo").focus();
+        return true;
     } catch (error) {
         planActual = null;
         porId("resultado").hidden = true;
@@ -326,14 +391,63 @@ async function calcular(compararSemillas = false) {
     }
 }
 
-function ponerMasaOriginal() {
-    campoMasa.value = escenarios.get(selector.value).masa_disponible_g;
+function crearFilaProducto(producto = {}) {
+    const fila = porId("plantilla-producto").content.firstElementChild.cloneNode(true);
+    for (const campo of fila.querySelectorAll("input")) {
+        campo.value = producto[campo.name] ?? "";
+    }
+    return fila;
+}
+
+function actualizarEditorProductos() {
+    const filas = [...productosEdicion.children];
+    texto("cantidad-productos", `${filas.length} ${filas.length === 1 ? "producto" : "productos"}`);
+    filas.forEach((fila, indice) => {
+        for (const campo of fila.querySelectorAll("input")) {
+            campo.setAttribute("aria-label", `${campo.previousElementSibling.textContent} del producto ${indice + 1}`);
+        }
+        const quitar = fila.querySelector(".quitar-producto");
+        quitar.setAttribute("aria-label", `Quitar producto ${indice + 1}`);
+        quitar.disabled = filas.length === 1;
+    });
+}
+
+function cargarEscenario() {
+    const escenario = escenarios.get(selector.value);
+    campoMasa.value = escenario?.masa_disponible_g ?? "";
+    const productos = escenario?.productos ?? [{}];
+    productosEdicion.replaceChildren(...productos.map(crearFilaProducto));
+    actualizarEditorProductos();
+    porId("restaurar-escenario").hidden = !escenario;
+    if (!escenario) {
+        planActual = null;
+        porId("resultado").hidden = true;
+        porId("editar-productos").open = true;
+        actualizarEstado("Ingresa la masa y los datos de tu primer pan.");
+    }
+    return Boolean(escenario);
+}
+
+function cargarParametros() {
+    const { configuracion, semillas } = valoresIniciales;
+    for (const [clave, campo] of Object.entries(camposConfiguracion)) {
+        campo.value = clave.startsWith("prob_") ? configuracion[clave] * 100 : configuracion[clave];
+    }
+    campoSemillas.value = semillas.join(", ");
+    texto("valor-elitismo", configuracion.elitismo);
+}
+
+function indicarCambios() {
+    actualizarEstado("Pulsa Calcular plan para aplicar los cambios.");
 }
 
 async function iniciar() {
     try {
-        const datos = await pedirDatos("/api/escenarios");
-        if (!datos.length) throw new Error("Agrega un escenario JSON a la carpeta datos.");
+        const [datos, iniciales] = await Promise.all([
+            pedirDatos("/api/escenarios"),
+            pedirDatos("/api/configuracion"),
+        ]);
+        valoresIniciales = iniciales;
         const principales = document.createElement("optgroup");
         principales.label = "Escenarios de demostración";
         const limites = document.createElement("optgroup");
@@ -343,27 +457,54 @@ async function iniciar() {
             const grupo = escenario.id.startsWith("casos_limite/") ? limites : principales;
             grupo.append(new Option(escenario.nombre, escenario.id));
         }
-        selector.replaceChildren(...[principales, limites].filter((grupo) => grupo.childElementCount));
-        if (escenarios.has("escasez_moderada.json")) selector.value = "escasez_moderada.json";
-        ponerMasaOriginal();
+        const grupos = [principales, limites].filter((grupo) => grupo.childElementCount);
+        selector.replaceChildren(...grupos, new Option("Personalizado", "personalizado"));
+        selector.value = escenarios.has("escasez_moderada.json")
+            ? "escasez_moderada.json" : datos[0]?.id ?? "personalizado";
+        cargarParametros();
+        const precargado = cargarEscenario();
         ocuparControles(false);
-        await calcular();
+        if (precargado) await calcular();
     } catch (error) {
         actualizarEstado(error.message, { error: true });
     }
 }
 
-formulario.addEventListener("submit", (evento) => {
+formulario.addEventListener("submit", async (evento) => {
     evento.preventDefault();
-    calcular();
+    const aplicado = await calcular();
+    if (aplicado && evento.submitter?.id === "aplicar-cambios") {
+        porId("escenario-titulo").focus();
+    }
 });
 selector.addEventListener("change", () => {
-    ponerMasaOriginal();
-    calcular();
+    if (cargarEscenario()) calcular();
 });
-for (const campo of [campoMasa, campoSemilla]) {
-    campo.addEventListener("input", () => actualizarEstado("Pulsa Calcular plan para aplicar el cambio."));
-}
+formulario.addEventListener("input", indicarCambios);
+porId("agregar-producto").addEventListener("click", () => {
+    const fila = crearFilaProducto();
+    productosEdicion.append(fila);
+    actualizarEditorProductos();
+    fila.querySelector("input").focus();
+    indicarCambios();
+});
+productosEdicion.addEventListener("click", (evento) => {
+    const boton = evento.target.closest(".quitar-producto");
+    if (!boton || boton.disabled) return;
+    const fila = boton.closest(".producto-edicion");
+    const siguiente = fila.nextElementSibling || fila.previousElementSibling;
+    fila.remove();
+    actualizarEditorProductos();
+    siguiente.querySelector("input").focus();
+    indicarCambios();
+});
+porId("restaurar-escenario").addEventListener("click", () => {
+    if (cargarEscenario()) calcular();
+});
+porId("restaurar-parametros").addEventListener("click", () => {
+    cargarParametros();
+    indicarCambios();
+});
 comparar.addEventListener("click", () => calcular(true));
 generacion.addEventListener("input", actualizarGeneracion);
 metricaGrafica.addEventListener("change", dibujarGrafica);
