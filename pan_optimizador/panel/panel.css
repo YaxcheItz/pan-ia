@@ -183,6 +183,13 @@ summary::-webkit-details-marker { display: none; }
 .titulo-evolucion { line-height: 1.25; }
 .titulo-evolucion small { display: inline-block; margin-inline-start: 5px; }
 .detalle-contenido { padding-block: 0 8px; }
+.presentacion-evolucion { display: flex; align-items: center; gap: 8px; max-width: 100%; width: fit-content; margin-bottom: 10px; }
+.tabla-cambios-contenedor { max-height: 19rem; overflow: auto; }
+.tabla-cambios :is(th, td) { padding-inline: clamp(3px, 1vw, 10px); }
+.tabla-cambios thead th { position: sticky; top: 0; background: var(--rejilla); }
+.tabla-cambios td { white-space: nowrap; }
+.cifra-cambiada { background: var(--resalte); color: var(--acento); font-weight: 700; }
+.nota-cambios { margin-block: 7px; color: var(--secundario); font-size: .88rem; }
 
 .encabezado-evolucion { gap: 7px 12px; margin-bottom: 5px; }
 .encabezado-evolucion .campo { display: flex; align-items: center; gap: 8px; }
@@ -192,6 +199,9 @@ summary::-webkit-details-marker { display: none; }
 .leyenda > span { display: inline-flex; align-items: center; gap: 6px; }
 .trazo { flex: none; width: 21px; border-top: 3px solid var(--acento); }
 .trazo-referencia { border-top: 2px dashed var(--secundario); }
+.vista-evolucion { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 12px; color: var(--secundario); font-size: .88rem; }
+.vista-evolucion label { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; color: var(--acento); cursor: pointer; font-weight: 650; }
+.vista-evolucion input { margin: 0; accent-color: var(--acento); }
 #grafica { display: block; width: 100%; height: clamp(10.25rem, 22vh, 13rem); }
 .control-generacion {
     display: grid;

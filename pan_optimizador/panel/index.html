@@ -155,27 +155,60 @@
                 </summary>
                 <div class="detalle-contenido">
                     <p id="solucion-directa" class="aviso-directo" hidden></p>
-                    <div id="evolucion-grafica">
-                        <header class="encabezado-evolucion">
-                            <div class="leyenda">
-                                <span><i class="trazo" aria-hidden="true"></i> Mejor plan genético</span>
-                                <span><i class="trazo trazo-referencia" aria-hidden="true"></i><span id="referencia-grafica">Reparto proporcional</span></span>
+                    <div id="evolucion-historial">
+                        <div class="campo presentacion-evolucion">
+                            <label for="presentacion-evolucion">Vista</label>
+                            <select id="presentacion-evolucion" aria-controls="evolucion-cambios evolucion-grafica">
+                                <option value="cambios">Cambios por generación</option>
+                                <option value="grafica">Gráfica</option>
+                            </select>
+                        </div>
+                        <div id="evolucion-cambios">
+                            <div class="tabla-cambios-contenedor">
+                                <table class="tabla-cambios" aria-describedby="nota-cambios">
+                                    <caption class="solo-lectores">Cambios en el resultado de cada generación</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Generación</th>
+                                            <th scope="col">Cobertura mínima</th>
+                                            <th scope="col">Piezas</th>
+                                            <th scope="col">Masa usada</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="filas-cambios"></tbody>
+                                </table>
                             </div>
-                            <div class="campo">
-                                <label for="metrica">Métrica</label>
-                                <select id="metrica">
-                                    <option value="cobertura_minima_pct">Cobertura mínima</option>
-                                    <option value="piezas_totales">Piezas totales</option>
-                                    <option value="masa_usada_g">Masa usada</option>
-                                </select>
+                            <p class="nota-cambios" id="nota-cambios"></p>
+                        </div>
+                        <div id="evolucion-grafica" hidden>
+                            <header class="encabezado-evolucion">
+                                <div class="leyenda">
+                                    <span><i class="trazo" aria-hidden="true"></i> Mejor plan genético</span>
+                                    <span><i class="trazo trazo-referencia" aria-hidden="true"></i><span id="referencia-grafica">Reparto proporcional</span></span>
+                                </div>
+                                <div class="campo">
+                                    <label for="metrica">Métrica</label>
+                                    <select id="metrica">
+                                        <option value="cobertura_minima_pct">Cobertura mínima</option>
+                                        <option value="piezas_totales">Piezas totales</option>
+                                        <option value="masa_usada_g">Masa usada</option>
+                                    </select>
+                                </div>
+                            </header>
+                            <div class="vista-evolucion">
+                                <p id="tramo-evolucion"></p>
+                                <label id="opcion-corrida-completa" hidden>
+                                    <input type="checkbox" id="corrida-completa" aria-controls="grafica generacion">
+                                    Ver corrida completa
+                                </label>
                             </div>
-                        </header>
-                        <canvas id="grafica" role="img" aria-label="Gráfica de evolución del plan por generación"
-                                aria-describedby="lectura-generacion"></canvas>
-                        <div class="control-generacion">
-                            <label for="generacion">Explorar generación</label>
-                            <input type="range" id="generacion" min="0" max="160" value="160">
-                            <output for="generacion" id="lectura-generacion"></output>
+                            <canvas id="grafica" role="img" aria-label="Gráfica de evolución del plan por generación"
+                                    aria-describedby="tramo-evolucion lectura-generacion"></canvas>
+                            <div class="control-generacion">
+                                <label for="generacion">Explorar generación</label>
+                                <input type="range" id="generacion" min="0" max="160" value="160">
+                                <output for="generacion" id="lectura-generacion"></output>
+                            </div>
                         </div>
                     </div>
                     <p id="configuracion"></p>

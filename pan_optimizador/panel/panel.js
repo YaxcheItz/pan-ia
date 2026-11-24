@@ -39,7 +39,9 @@ const camposConfiguracion = {
     prob_cruce: porId("prob-cruce"),
     prob_mutacion: porId("prob-mutacion"),
 };
+const presentacionEvolucion = porId("presentacion-evolucion");
 const metricaGrafica = porId("metrica");
+const corridaCompleta = porId("corrida-completa");
 const generacion = porId("generacion");
 const grafica = porId("grafica");
 const escenarios = new Map();
@@ -114,15 +116,57 @@ function mostrarVeredicto({ resultado, criterio }) {
     texto("veredicto", `${titulosVeredicto[resultado]}.${motivo}`);
 }
 
+function generacionesConCambios(historial) {
+    const metricas = Object.keys(formatosMetricas);
+    const cambios = [0];
+    for (let indice = 1; indice < historial.length; indice += 1) {
+        const actual = historial[indice];
+        const anterior = historial[indice - 1];
+        if (metricas.some((metrica) => actual[metrica] !== anterior[metrica])) cambios.push(indice);
+    }
+    return cambios;
+}
+
+function mostrarTablaCambios(historial, cambios) {
+    const filas = document.createDocumentFragment();
+    const metricas = Object.entries(formatosMetricas);
+    for (const indice of cambios) {
+        const fila = document.createElement("tr");
+        const actual = historial[indice];
+        const anterior = historial[indice - 1];
+        celda(fila, numero(indice), { encabezado: true });
+        for (const [clave, formato] of metricas) {
+            const clase = anterior && actual[clave] !== anterior[clave] ? "cifra-cambiada" : undefined;
+            celda(fila, formato(actual[clave]), { clase });
+        }
+        filas.append(fila);
+    }
+    porId("filas-cambios").replaceChildren(filas);
+
+    const ultima = cambios.at(-1);
+    const fin = historial.length - 1;
+    let nota = "La generación 0 es la población inicial.";
+    if (ultima < fin) {
+        nota += ` Las cifras se mantuvieron desde la generación ${numero(ultima)} hasta la ${numero(fin)}.`;
+    }
+    texto("nota-cambios", nota);
+}
+
+function mostrarPresentacionEvolucion() {
+    const verGrafica = presentacionEvolucion.value === "grafica";
+    porId("evolucion-cambios").hidden = verGrafica;
+    porId("evolucion-grafica").hidden = !verGrafica;
+}
+
 function mostrarPlan(datos) {
     const resultado = datos.genetico;
     const config = datos.configuracion;
     const rondas = resultado.generaciones_ejecutadas;
-    if (planActual?.nombre !== datos.nombre || Number(generacion.max) !== rondas) {
-        generacion.max = rondas;
-        generacion.value = rondas;
-    }
-    planActual = datos;
+    const conservarGeneracion = planActual?.nombre === datos.nombre
+        && planActual.genetico.generaciones_ejecutadas === rondas;
+    const seleccion = conservarGeneracion ? Number(generacion.value) : null;
+    const cambios = generacionesConCambios(resultado.historial);
+    planActual = { ...datos, cambios };
     let titulo = datos.nombre;
     if (datos.productos_modificados) {
         titulo = "Simulación personalizada";
@@ -155,9 +199,29 @@ function mostrarPlan(datos) {
         texto("solucion-directa", "El programa eligió el mejor plan de la población inicial. Configura una generación o más para ver la evolución.");
     }
     porId("solucion-directa").hidden = rondas > 0;
-    porId("evolucion-grafica").hidden = !rondas;
+    porId("evolucion-historial").hidden = !rondas;
     porId("configuracion").hidden = resultado.trivial;
     porId("resultado").hidden = false;
+    if (rondas) mostrarTablaCambios(resultado.historial, cambios);
+    mostrarPresentacionEvolucion();
+    ajustarVistaEvolucion(seleccion);
+}
+
+function ajustarVistaEvolucion(seleccion = Number(generacion.value)) {
+    if (!planActual?.genetico.generaciones_ejecutadas) return;
+    const rondas = planActual.genetico.generaciones_ejecutadas;
+    const ultimoCambio = planActual.cambios.at(-1);
+    const finDetalle = ultimoCambio ? Math.min(rondas, Math.max(8, ultimoCambio + 2)) : rondas;
+    const fin = corridaCompleta.checked ? rondas : finDetalle;
+    const seleccionInicial = fin < rondas ? ultimoCambio : fin;
+    generacion.max = fin;
+    generacion.value = Math.min(seleccion ?? seleccionInicial, fin);
+
+    const detalle = ultimoCambio
+        ? `Último cambio en la generación ${numero(ultimoCambio)}.`
+        : "Las métricas se mantuvieron desde la generación 0.";
+    texto("tramo-evolucion", `Generaciones 0–${numero(fin)} de ${numero(rondas)}. ${detalle}`);
+    porId("opcion-corrida-completa").hidden = finDetalle === rondas;
     actualizarGeneracion();
 }
 
@@ -217,15 +281,15 @@ function dibujarGrafica() {
     const { value: clave, label: nombre } = metricaGrafica.selectedOptions[0];
     const formato = formatosMetricas[clave];
     const referencia = planActual.proporcional[clave];
-    const valores = planActual.genetico.historial.map((medidas) => medidas[clave]);
+    const ultimo = Number(generacion.max);
+    const valores = planActual.genetico.historial.slice(0, ultimo + 1).map((medidas) => medidas[clave]);
     const marcas = escalaGrafica(valores, referencia, clave === "cobertura_minima_pct");
     const minimo = marcas[0];
     const maximo = marcas.at(-1);
     const etiquetas = marcas.map(formato);
     const margenIzq = Math.ceil(Math.max(...etiquetas.map((etiqueta) => ctx.measureText(etiqueta).width))) + 12;
-    const margenDer = 13;
+    const margenDer = Math.max(13, Math.ceil(ctx.measureText(numero(ultimo)).width / 2) + 5);
     const base = alto - 25;
-    const ultimo = valores.length - 1;
     const x = (indice) => margenIzq + indice / ultimo * (ancho - margenIzq - margenDer);
     const y = (valor) => base - (valor - minimo) / (maximo - minimo) * (base - 14);
 
@@ -243,10 +307,10 @@ function dibujarGrafica() {
     }
 
     ctx.textAlign = "center";
-    const marcasGeneracion = Math.min(4, ultimo);
+    const marcasGeneracion = ultimo <= 8 ? ultimo : 4;
     for (let i = 0; i <= marcasGeneracion; i += 1) {
         const indice = Math.round(i * ultimo / marcasGeneracion);
-        ctx.fillText(indice, x(indice), alto - 9);
+        ctx.fillText(numero(indice), x(indice), alto - 9);
     }
 
     ctx.strokeStyle = acento;
@@ -282,7 +346,7 @@ function dibujarGrafica() {
     ctx.fill();
     const referenciaFormateada = formato(referencia);
     texto("referencia-grafica", `Reparto proporcional · ${referenciaFormateada}`);
-    grafica.setAttribute("aria-label", `${nombre} por generación. Inicio ${formato(valores[0])}, final ${formato(valores.at(-1))}, referencia ${referenciaFormateada}.`);
+    grafica.setAttribute("aria-label", `${nombre} de la generación 0 a la ${numero(ultimo)}. Inicio ${formato(valores[0])}, fin del tramo ${formato(valores.at(-1))}, referencia ${referenciaFormateada}.`);
 }
 
 function leerSolicitud() {
@@ -464,6 +528,11 @@ porId("restaurar-parametros").addEventListener("click", () => {
     indicarCambios();
 });
 generacion.addEventListener("input", actualizarGeneracion);
+presentacionEvolucion.addEventListener("change", () => {
+    mostrarPresentacionEvolucion();
+    dibujarGrafica();
+});
+corridaCompleta.addEventListener("change", () => ajustarVistaEvolucion());
 metricaGrafica.addEventListener("change", dibujarGrafica);
 new ResizeObserver(dibujarGrafica).observe(grafica);
 
