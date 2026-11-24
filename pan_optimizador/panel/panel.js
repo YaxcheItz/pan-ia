@@ -130,7 +130,6 @@ function mostrarPlan(datos) {
         titulo = `Simulación con ${gramos(datos.masa_disponible_g)}`;
     }
     texto("escenario-titulo", titulo);
-    texto("contexto", `Semilla ${numero(resultado.semilla)}`);
     texto("piezas-totales", `${numero(resultado.piezas_totales)} de ${numero(datos.demanda_total)}`);
     texto("cobertura-total", `${porcentaje(resultado.cobertura_total_pct)} de cobertura total`);
     texto("cobertura-minima", porcentaje(resultado.cobertura_minima_pct));
@@ -461,6 +460,7 @@ porId("restaurar-escenario").addEventListener("click", () => {
 });
 porId("restaurar-parametros").addEventListener("click", () => {
     cargarParametros();
+    campoSemilla.value = campoSemilla.defaultValue;
     indicarCambios();
 });
 generacion.addEventListener("input", actualizarGeneracion);

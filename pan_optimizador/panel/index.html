@@ -32,10 +32,6 @@
                         <label for="masa">Masa disponible (g)</label>
                         <input id="masa" type="number" inputmode="numeric" min="0" step="1" required>
                     </div>
-                    <div class="campo">
-                        <label for="semilla">Semilla</label>
-                        <input id="semilla" type="number" step="1" value="42" required>
-                    </div>
                     <button type="submit" class="boton boton-primario" id="calcular">Calcular plan</button>
                 </div>
 
@@ -55,6 +51,10 @@
                         <summary>Parámetros del algoritmo</summary>
                         <div class="editor-contenido">
                             <div class="parametros-edicion">
+                                <div class="campo">
+                                    <label for="semilla">Semilla</label>
+                                    <input id="semilla" type="number" step="1" value="42" required>
+                                </div>
                                 <div class="campo">
                                     <label for="poblacion">Población</label>
                                     <input id="poblacion" type="number" inputmode="numeric" min="2" step="1" required>
@@ -102,10 +102,7 @@
 
         <div id="resultado" hidden>
             <section aria-labelledby="escenario-titulo" class="resumen">
-                <div class="titulo-resultados">
-                    <h2 id="escenario-titulo" tabindex="-1"></h2>
-                    <p id="contexto"></p>
-                </div>
+                <h2 class="titulo-resultados" id="escenario-titulo" tabindex="-1"></h2>
                 <dl class="indicadores">
                     <div class="indicador">
                         <dt>Piezas del plan genético</dt>
