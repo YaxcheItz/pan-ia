@@ -7,9 +7,6 @@ from typing import ClassVar
 from .modelo import Aptitud, Escenario, Plan, Vector, evaluar, masa_usada
 from .proporcional import cuotas_iniciales
 
-SEMILLAS_DEMOSTRACION = (7, 21, 42, 84, 123)
-
-
 @dataclass(frozen=True)
 class Configuracion:
     poblacion: int = 80

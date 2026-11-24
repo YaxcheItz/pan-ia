@@ -11,81 +11,82 @@
     <main class="contenedor">
         <header class="encabezado">
             <div>
-                <p>Inteligencia Artificial · Grupo 9SA</p>
                 <h1>Producción de pan</h1>
+                <p>Inteligencia Artificial · Grupo 9SA</p>
             </div>
             <button type="button" class="boton boton-secundario" id="pantalla" hidden>Pantalla completa</button>
         </header>
 
         <form class="superficie" id="controles" novalidate>
-            <div class="controles">
-                <div class="campo campo-escenario">
-                    <label for="escenario">Escenario</label>
-                    <select id="escenario" required disabled></select>
-                </div>
-                <div class="campo">
-                    <label for="masa">Masa disponible (g)</label>
-                    <input id="masa" type="number" inputmode="numeric" min="0" step="1" required disabled>
-                </div>
-                <div class="campo">
-                    <label for="semilla">Semilla</label>
-                    <input id="semilla" type="number" step="1" value="42" required disabled>
-                </div>
-                <button type="submit" class="boton boton-primario" id="calcular" disabled>Calcular plan</button>
-            </div>
-
-            <div class="editores">
-                <details class="apertura editor" id="editar-productos">
-                    <summary>Editar productos <small id="cantidad-productos"></small></summary>
-                    <div class="editor-contenido">
-                        <div id="productos-edicion" class="productos-edicion"></div>
-                        <div class="acciones-editor">
-                            <button type="button" class="boton boton-secundario" id="agregar-producto" disabled>Agregar pan</button>
-                            <button type="button" class="boton boton-secundario" id="restaurar-escenario" disabled>Restaurar datos del escenario</button>
+            <fieldset id="entradas-plan" disabled>
+                <legend class="solo-lectores">Datos de producción</legend>
+                <div class="controles">
+                    <div class="campo campo-escenario">
+                        <div class="etiqueta-escenario">
+                            <label for="escenario">Escenario</label>
+                            <button type="button" id="mostrar-casos-limite" aria-controls="escenario" hidden>Mostrar casos límite</button>
                         </div>
+                        <select id="escenario" required></select>
                     </div>
-                </details>
-
-                <details class="apertura editor" id="editar-parametros">
-                    <summary>Parámetros del algoritmo</summary>
-                    <div class="editor-contenido">
-                        <div class="parametros-edicion">
-                            <div class="campo">
-                                <label for="poblacion">Población</label>
-                                <input id="poblacion" type="number" inputmode="numeric" min="2" step="1" required disabled>
-                            </div>
-                            <div class="campo">
-                                <label for="generaciones">Generaciones</label>
-                                <input id="generaciones" type="number" inputmode="numeric" min="0" step="1" required disabled>
-                            </div>
-                            <div class="campo">
-                                <label for="torneo">Candidatos por torneo</label>
-                                <input id="torneo" type="number" inputmode="numeric" min="2" step="1" required disabled>
-                            </div>
-                            <div class="campo">
-                                <label for="prob-cruce">Cruce (%)</label>
-                                <input id="prob-cruce" type="number" inputmode="decimal" min="0" max="100" step="any" required disabled>
-                            </div>
-                            <div class="campo">
-                                <label for="prob-mutacion">Mutación (%)</label>
-                                <input id="prob-mutacion" type="number" inputmode="decimal" min="0" max="100" step="any" required disabled>
-                            </div>
-                            <div class="campo semillas-edicion">
-                                <label for="semillas-comparacion">Semillas para comparar</label>
-                                <input id="semillas-comparacion" type="text" autocomplete="off" aria-describedby="ayuda-semillas" disabled>
-                                <small id="ayuda-semillas">Separa los números con comas.</small>
-                            </div>
-                        </div>
-                        <div class="acciones-editor">
-                            <p>El elitismo conserva el mejor plan de cada ronda. Valor fijo de <strong id="valor-elitismo"></strong>.</p>
-                            <button type="button" class="boton boton-secundario" id="restaurar-parametros" disabled>Restaurar parámetros</button>
-                        </div>
+                    <div class="campo">
+                        <label for="masa">Masa disponible (g)</label>
+                        <input id="masa" type="number" inputmode="numeric" min="0" step="1" required>
                     </div>
-                </details>
-                <div class="aplicar-editor">
-                    <button type="submit" class="boton boton-primario" id="aplicar-cambios" disabled>Aplicar cambios</button>
+                    <div class="campo">
+                        <label for="semilla">Semilla</label>
+                        <input id="semilla" type="number" step="1" value="42" required>
+                    </div>
+                    <button type="submit" class="boton boton-primario" id="calcular">Calcular plan</button>
                 </div>
-            </div>
+
+                <div class="editores">
+                    <details class="apertura editor" id="editar-productos">
+                        <summary>Editar productos <small id="cantidad-productos"></small></summary>
+                        <div class="editor-contenido">
+                            <div id="productos-edicion" class="productos-edicion"></div>
+                            <div class="acciones-editor">
+                                <button type="button" class="boton boton-secundario" id="agregar-producto">Agregar pan</button>
+                                <button type="button" class="boton boton-secundario" id="restaurar-escenario">Restaurar datos del escenario</button>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="apertura editor" id="editar-parametros">
+                        <summary>Parámetros del algoritmo</summary>
+                        <div class="editor-contenido">
+                            <div class="parametros-edicion">
+                                <div class="campo">
+                                    <label for="poblacion">Población</label>
+                                    <input id="poblacion" type="number" inputmode="numeric" min="2" step="1" required>
+                                </div>
+                                <div class="campo">
+                                    <label for="generaciones">Generaciones</label>
+                                    <input id="generaciones" type="number" inputmode="numeric" min="0" step="1" required>
+                                </div>
+                                <div class="campo">
+                                    <label for="torneo">Candidatos por torneo</label>
+                                    <input id="torneo" type="number" inputmode="numeric" min="2" step="1" required>
+                                </div>
+                                <div class="campo">
+                                    <label for="prob-cruce">Cruce (%)</label>
+                                    <input id="prob-cruce" type="number" inputmode="decimal" min="0" max="100" step="any" required>
+                                </div>
+                                <div class="campo">
+                                    <label for="prob-mutacion">Mutación (%)</label>
+                                    <input id="prob-mutacion" type="number" inputmode="decimal" min="0" max="100" step="any" required>
+                                </div>
+                            </div>
+                            <div class="acciones-editor">
+                                <p>El elitismo conserva el mejor plan de cada ronda. Valor fijo de <strong id="valor-elitismo"></strong>.</p>
+                                <button type="button" class="boton boton-secundario" id="restaurar-parametros">Restaurar parámetros</button>
+                            </div>
+                        </div>
+                    </details>
+                    <div class="aplicar-editor">
+                        <button type="submit" class="boton boton-primario" id="aplicar-cambios">Aplicar cambios</button>
+                    </div>
+                </div>
+            </fieldset>
 
             <template id="plantilla-producto">
                 <div class="producto-edicion">
@@ -128,104 +129,50 @@
                 </dl>
             </section>
 
-            <div class="reparto">
-                <section aria-labelledby="produccion-titulo">
-                    <header class="titulo-seccion">
-                        <h2 id="produccion-titulo">Plan por producto</h2>
-                        <p>La masa asignada y la cobertura corresponden al plan genético.</p>
-                    </header>
-                    <div class="tabla-contenedor">
-                        <table class="tabla-adaptable tabla-productos" role="table" aria-labelledby="produccion-titulo">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Producto</th>
-                                    <th scope="col">Demanda</th>
-                                    <th scope="col" class="col-genetico">Genético</th>
-                                    <th scope="col">Proporcional</th>
-                                    <th scope="col">Masa asignada</th>
-                                    <th scope="col">Cobertura</th>
-                                </tr>
-                            </thead>
-                            <tbody id="productos"></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section class="comparacion" aria-labelledby="comparacion-titulo">
-                    <header class="titulo-seccion encabezado-comparacion">
-                        <h2 id="comparacion-titulo">Comparación de métodos</h2>
-                        <button type="button" class="boton boton-secundario" id="comparar-semillas"
-                                aria-controls="resumen-semillas" aria-expanded="false">
-                            Comparar semillas
-                        </button>
-                    </header>
-                    <div class="veredicto" id="veredicto">
-                        <strong id="ganador"></strong>
-                        <p id="motivo"></p>
-                    </div>
-                    <table class="tabla-comparacion">
-                        <thead>
-                            <tr>
-                                <th scope="col">Criterio</th>
-                                <th scope="col" class="col-genetico">Genético</th>
-                                <th scope="col">Proporcional</th>
-                            </tr>
-                        </thead>
-                        <tbody id="criterios"></tbody>
-                    </table>
-                    <details class="criterios">
-                        <summary>Cómo se decide</summary>
-                        <ol>
-                            <li>Mejor cobertura del producto menos atendido.</li>
-                            <li>Más piezas si empata la cobertura mínima.</li>
-                            <li>Más gramos usados si también empatan las piezas.</li>
-                        </ol>
-                    </details>
-                </section>
-            </div>
-
-            <section class="bloque semillas" id="resumen-semillas" aria-labelledby="semillas-titulo" hidden>
+            <section class="produccion" aria-labelledby="produccion-titulo">
                 <header class="titulo-seccion">
-                    <h2 id="semillas-titulo" tabindex="-1">Comparación de semillas</h2>
-                    <p id="conteo-semillas"></p>
+                    <h2 id="produccion-titulo">Plan por producto</h2>
+                    <p>La masa asignada y la cobertura corresponden al plan genético.</p>
                 </header>
                 <div class="tabla-contenedor">
-                    <table class="tabla-adaptable tabla-semillas" role="table" aria-labelledby="semillas-titulo">
+                    <table class="tabla-adaptable" role="table" aria-labelledby="produccion-titulo">
                         <thead>
                             <tr>
-                                <th scope="col">Semilla</th>
-                                <th scope="col">Cobertura mínima</th>
-                                <th scope="col">Piezas</th>
-                                <th scope="col">Masa usada</th>
-                                <th scope="col">Resultado del genético</th>
-                                <th scope="col">Criterio decisivo</th>
+                                <th scope="col">Producto</th>
+                                <th scope="col">Demanda</th>
+                                <th scope="col" class="col-genetico">Genético</th>
+                                <th scope="col">Proporcional</th>
+                                <th scope="col">Masa asignada</th>
+                                <th scope="col">Cobertura</th>
                             </tr>
                         </thead>
-                        <tbody id="semillas"></tbody>
+                        <tbody id="productos"></tbody>
                     </table>
                 </div>
+                <p class="veredicto" id="veredicto"></p>
             </section>
 
-            <details class="bloque apertura" id="detalle-evolucion">
-                <summary>Evolución del algoritmo <small id="modo-evolucion"></small></summary>
+            <details class="apertura evolucion" id="detalle-evolucion" open>
+                <summary>
+                    <span class="titulo-evolucion">Evolución del algoritmo <small id="modo-evolucion"></small></span>
+                </summary>
                 <div class="detalle-contenido">
-                    <header class="encabezado-evolucion" id="opciones-evolucion">
-                        <p id="configuracion"></p>
-                        <div class="campo" id="campo-metrica">
-                            <label for="metrica">Métrica de la gráfica</label>
-                            <select id="metrica">
-                                <option value="cobertura_minima_pct">Cobertura mínima</option>
-                                <option value="piezas_totales">Piezas totales</option>
-                                <option value="masa_usada_g">Masa usada</option>
-                            </select>
-                        </div>
-                    </header>
                     <p id="solucion-directa" class="aviso-directo" hidden></p>
                     <div id="evolucion-grafica">
-                        <div class="leyenda">
-                            <span><i class="trazo" aria-hidden="true"></i> Mejor genético</span>
-                            <span><i class="trazo trazo-referencia" aria-hidden="true"></i> Reparto proporcional</span>
-                        </div>
+                        <header class="encabezado-evolucion">
+                            <div class="leyenda">
+                                <span><i class="trazo" aria-hidden="true"></i> Mejor plan genético</span>
+                                <span><i class="trazo trazo-referencia" aria-hidden="true"></i><span id="referencia-grafica">Reparto proporcional</span></span>
+                            </div>
+                            <div class="campo">
+                                <label for="metrica">Métrica</label>
+                                <select id="metrica">
+                                    <option value="cobertura_minima_pct">Cobertura mínima</option>
+                                    <option value="piezas_totales">Piezas totales</option>
+                                    <option value="masa_usada_g">Masa usada</option>
+                                </select>
+                            </div>
+                        </header>
                         <canvas id="grafica" role="img" aria-label="Gráfica de evolución del plan por generación"
                                 aria-describedby="lectura-generacion"></canvas>
                         <div class="control-generacion">
@@ -234,19 +181,10 @@
                             <output for="generacion" id="lectura-generacion"></output>
                         </div>
                     </div>
+                    <p id="configuracion"></p>
                 </div>
             </details>
         </div>
-
-        <details class="bloque apertura" id="registros">
-            <summary>Registros CSV</summary>
-            <div class="detalle-contenido registros">
-                <p>Resultados del lote de demostración.</p>
-                <a href="/registros/corridas.csv" download>Corridas</a>
-                <a href="/registros/detalle_productos.csv" download>Detalle por producto</a>
-                <a href="/registros/evolucion.csv" download>Evolución</a>
-            </div>
-        </details>
     </main>
 </body>
 </html>

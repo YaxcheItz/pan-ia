@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from .genetico import SEMILLAS_DEMOSTRACION, Configuracion, optimizar
+from .genetico import Configuracion, optimizar
 from .modelo import Escenario, leer_escenario
 from .proporcional import repartir
 from .reportes import (
@@ -45,7 +45,7 @@ def _argumentos() -> argparse.ArgumentParser:
         help="comparar los dos métodos en una carpeta de escenarios",
     )
     lote.add_argument("carpeta", type=Path, help="carpeta que contiene los archivos JSON")
-    lote.add_argument("--semillas", type=int, nargs="+", default=list(SEMILLAS_DEMOSTRACION),
+    lote.add_argument("--semillas", type=int, nargs="+", default=[7, 21, 42, 84, 123],
                       help="semillas del algoritmo genético")
     lote.add_argument("--salida", type=Path, default=Path("resultados"), help="carpeta de los CSV")
 

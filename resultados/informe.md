@@ -44,4 +44,4 @@ En escasez extrema, las cinco semillas alcanzaron la aptitud final desde la pobl
 
 El genético usa como candidato de arranque las cuotas redondeadas hacia abajo. El reparto de referencia aplica además su redistribución del sobrante en una ejecución independiente. En los 10 kg esas cuotas iniciales son `(53, 30, 22)` y el reparto agrega una pieza de B.
 
-Las 24 filas de corridas, 72 de detalle y 2 420 de evolución están en los archivos generados por el comando de demostración. [Corridas](corridas.csv) · [Detalle por producto](detalle_productos.csv) · [Evolución](evolucion.csv)
+El comando de demostración genera 24 filas en `corridas.csv`, 72 en `detalle_productos.csv` y 2 420 en `evolucion.csv`.

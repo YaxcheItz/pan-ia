@@ -7,6 +7,11 @@ from pathlib import Path
 
 Vector = tuple[int, ...]
 Aptitud = tuple[Fraction, int, int]
+CRITERIOS = {
+    "cobertura_minima": "cobertura mínima",
+    "piezas_totales": "piezas totales",
+    "masa_usada_g": "masa usada",
+}
 
 
 @dataclass(frozen=True)
@@ -14,6 +19,9 @@ class Producto:
     nombre: str
     gramos_por_pieza: int
     demanda: int
+
+    def cobertura(self, piezas: int) -> Fraction | None:
+        return Fraction(piezas, self.demanda) if self.demanda else None
 
 
 @dataclass(frozen=True)
@@ -132,14 +140,23 @@ def evaluar(escenario: Escenario, piezas: Vector) -> Plan:
     for producto, cantidad in zip(escenario.productos, piezas):
         if type(cantidad) is not int or not 0 <= cantidad <= producto.demanda:
             raise ValueError(f"Las piezas de «{producto.nombre}» deben ser enteras y respetar su demanda.")
-        if producto.demanda:
-            coberturas.append(Fraction(cantidad, producto.demanda))
+        cobertura = producto.cobertura(cantidad)
+        if cobertura is not None:
+            coberturas.append(cobertura)
 
     masa = masa_usada(escenario, piezas)
     if masa > escenario.masa_disponible_g:
         raise ValueError("El plan excede la masa disponible.")
     minima = min(coberturas) if coberturas else Fraction(0)
     return Plan(piezas, (minima, sum(piezas), masa))
+
+
+def comparar_aptitudes(genetica: Aptitud, proporcional: Aptitud) -> tuple[str, str]:
+    for campo, valor_genetico, valor_proporcional in zip(CRITERIOS, genetica, proporcional):
+        if valor_genetico != valor_proporcional:
+            resultado = "gana" if valor_genetico > valor_proporcional else "pierde"
+            return resultado, campo
+    return "empata", ""
 
 
 def medir(escenario: Escenario, plan: Plan) -> Metricas:

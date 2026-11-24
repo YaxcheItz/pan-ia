@@ -39,10 +39,13 @@ class InterfazTest(unittest.TestCase):
         with urlopen(peticion, timeout=15) as respuesta:
             return json.load(respuesta)
 
-    def test_servidor_entrega_panel_listado_y_csv(self):
+    def test_servidor_entrega_panel_listado_y_configuracion(self):
         encabezados, pagina = self.pedir("/")
         self.assertEqual(encabezados.get_content_type(), "text/html")
         self.assertIn("Planificador de producción", pagina.decode("utf-8"))
+        self.assertIn(b'id="grafica"', pagina)
+        self.assertNotIn(b"comparar-semillas", pagina)
+        self.assertNotIn(b"/registros/", pagina)
         for ruta, tipo in (("/panel.css", "text/css"), ("/panel.js", "text/javascript")):
             encabezados, contenido = self.pedir(ruta)
             self.assertEqual(encabezados.get_content_type(), tipo)
@@ -58,10 +61,7 @@ class InterfazTest(unittest.TestCase):
         parametros = json.loads(parametros)
         self.assertEqual(parametros["configuracion"]["generaciones"], 160)
         self.assertEqual(parametros["configuracion"]["elitismo"], 1)
-        self.assertEqual(parametros["semillas"], [7, 21, 42, 84, 123])
-        encabezados, registros = self.pedir("/registros/corridas.csv")
-        self.assertIn("attachment", encabezados["Content-Disposition"])
-        self.assertIn(b"aptitud_minima", registros)
+        self.assertNotIn("semillas", parametros)
 
     def test_el_lanzador_reutiliza_el_servidor_del_proyecto(self):
         self.assertTrue(_panel_activo(self.puerto))
@@ -81,16 +81,15 @@ class InterfazTest(unittest.TestCase):
         self.assertEqual(plan["historial"][-1]["piezas_totales"], 106)
         self.assertEqual(datos["comparacion"], {"resultado": "empata", "criterio": ""})
 
-    def test_compara_semillas_para_demanda_cero_sin_perder_el_criterio(self):
-        datos = self.pedir_plan("demanda_cero_producto_b.json", comparar=1, semilla=21)
+    def test_compara_metodos_para_demanda_cero_con_el_criterio_correcto(self):
+        datos = self.pedir_plan("demanda_cero_producto_b.json", semilla=21)
         self.assertEqual(datos["genetico"]["piezas_totales"], 32)
         self.assertEqual(datos["proporcional"]["piezas_totales"], 33)
         self.assertEqual(datos["genetico"]["cobertura_minima_pct"], 36.67)
         self.assertEqual(datos["proporcional"]["cobertura_minima_pct"], 36)
         self.assertIsNone(datos["productos"][1]["cobertura_pct"])
-        self.assertEqual([fila["semilla"] for fila in datos["semillas"]], [7, 21, 42, 84, 123])
-        self.assertTrue(all(fila["resultado"] == "gana" and fila["criterio"] == "cobertura_minima"
-                            for fila in datos["semillas"]))
+        self.assertEqual(datos["comparacion"], {"resultado": "gana", "criterio": "cobertura_minima"})
+        self.assertNotIn("semillas", datos)
 
     def test_masa_ajustada_y_cobertura_no_aplicable(self):
         datos = self.pedir_plan("escasez_moderada.json", masa=0)
@@ -123,14 +122,14 @@ class InterfazTest(unittest.TestCase):
         _, catalogo_posterior = self.pedir("/api/escenarios")
         self.assertEqual(catalogo_posterior, catalogo)
 
-    def test_aplica_configuracion_y_semillas_del_panel(self):
+    def test_aplica_configuracion_y_semilla_del_panel(self):
         config = {
             "poblacion": 2, "generaciones": 0, "torneo": 2,
             "prob_cruce": 0, "prob_mutacion": 0.25,
         }
         solicitud = {
             "escenario": "escasez_moderada.json", "semilla": 99,
-            "configuracion": config, "semillas_comparacion": [9, -7, 9],
+            "configuracion": config,
         }
         datos = self.calcular_edicion(**solicitud)
         self.assertEqual(datos["configuracion"], {**config, "elitismo": 1})
@@ -138,7 +137,6 @@ class InterfazTest(unittest.TestCase):
         self.assertFalse(datos["genetico"]["trivial"])
         self.assertEqual(datos["genetico"]["generaciones_ejecutadas"], 0)
         self.assertEqual(len(datos["genetico"]["historial"]), 1)
-        self.assertEqual([fila["semilla"] for fila in datos["semillas"]], [9, -7])
         self.assertEqual([p["genetico"] for p in datos["productos"]], [53, 30, 22])
         config["generaciones"] = 3
         con_rondas = self.calcular_edicion(**solicitud)
@@ -151,7 +149,7 @@ class InterfazTest(unittest.TestCase):
             ({"productos": [{"nombre": "Pan", "gramos_por_pieza": 0, "demanda": 1}]}, "gramos_por_pieza"),
             ({"configuracion": {"poblacion": 2, "torneo": 3}}, "torneo"),
             ({"configuracion": {"elitismo": 0}}, "parámetros"),
-            ({"semillas_comparacion": [7, 2.5]}, "semillas"),
+            ({"semilla": 2.5}, "semilla entera"),
         ):
             with self.subTest(cambios=cambios):
                 with self.assertRaises(HTTPError) as error:
@@ -172,7 +170,9 @@ class InterfazTest(unittest.TestCase):
                 with error.exception as respuesta:
                     self.assertEqual(respuesta.code, 400)
                     self.assertIn(mensaje, json.load(respuesta)["error"])
-        with self.assertRaises(HTTPError) as error:
-            self.pedir("/README.md")
-        error.exception.close()
-        self.assertEqual(error.exception.code, 404)
+        for ruta in ("/README.md", "/registros/evolucion.csv"):
+            with self.subTest(ruta=ruta):
+                with self.assertRaises(HTTPError) as error:
+                    self.pedir(ruta)
+                with error.exception as respuesta:
+                    self.assertEqual(respuesta.code, 404)

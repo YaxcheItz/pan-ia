@@ -12,11 +12,11 @@ const formatoPorcentaje = new Intl.NumberFormat("es-ES", {
 const porcentaje = (valor) => valor === null ? "N/D" : `${formatoPorcentaje.format(valor)} %`;
 const gramos = (valor) => `${numero(valor)} g`;
 
-const metricas = [
-    { clave: "cobertura_minima_pct", criterio: "cobertura_minima", nombre: "Cobertura mínima", formato: porcentaje },
-    { clave: "piezas_totales", criterio: "piezas_totales", nombre: "Piezas totales", formato: numero },
-    { clave: "masa_usada_g", criterio: "masa_usada_g", nombre: "Masa usada", formato: gramos },
-];
+const formatosMetricas = {
+    cobertura_minima_pct: porcentaje,
+    piezas_totales: numero,
+    masa_usada_g: gramos,
+};
 const titulosVeredicto = {
     gana: "Gana el genético",
     empata: "Empate entre los métodos",
@@ -27,14 +27,11 @@ const ventajas = {
     piezas_totales: "A igual cobertura mínima, decide el total de piezas.",
     masa_usada_g: "A igual cobertura y piezas, decide la masa utilizada.",
 };
-const resultadosSemilla = { gana: "Gana", empata: "Empata", pierde: "Pierde" };
-
 const formulario = porId("controles");
 const selector = porId("escenario");
 const campoMasa = porId("masa");
 const campoSemilla = porId("semilla");
 const productosEdicion = porId("productos-edicion");
-const campoSemillas = porId("semillas-comparacion");
 const camposConfiguracion = {
     poblacion: porId("poblacion"),
     generaciones: porId("generaciones"),
@@ -42,13 +39,12 @@ const camposConfiguracion = {
     prob_cruce: porId("prob-cruce"),
     prob_mutacion: porId("prob-mutacion"),
 };
-const comparar = porId("comparar-semillas");
 const metricaGrafica = porId("metrica");
 const generacion = porId("generacion");
 const grafica = porId("grafica");
 const escenarios = new Map();
 let planActual = null;
-let valoresIniciales;
+let configuracionInicial;
 
 function actualizarEstado(mensaje, { error = false, soloLectores = false } = {}) {
     const estado = porId("estado");
@@ -58,10 +54,7 @@ function actualizarEstado(mensaje, { error = false, soloLectores = false } = {})
 }
 
 function ocuparControles(ocupado) {
-    for (const control of [...formulario.elements, comparar]) {
-        control.disabled = ocupado;
-    }
-    if (!ocupado) actualizarEditorProductos();
+    porId("entradas-plan").disabled = ocupado;
     porId("resultado").setAttribute("aria-busy", String(ocupado));
 }
 
@@ -92,22 +85,10 @@ function celda(fila, contenido, { encabezado = false, clase, detalle } = {}) {
     fila.append(nodo);
 }
 
-function mostrarFilasAdaptables(id, filas) {
-    const cuerpo = porId(id);
-    const encabezados = [...cuerpo.parentElement.tHead.rows[0].cells];
-    for (const fila of filas) {
-        [...fila.cells].slice(1).forEach((columna, indice) => {
-            const etiqueta = document.createElement("span");
-            etiqueta.className = "etiqueta-celda";
-            etiqueta.setAttribute("aria-hidden", "true");
-            etiqueta.textContent = encabezados[indice + 1].textContent;
-            columna.prepend(etiqueta);
-        });
-    }
-    cuerpo.replaceChildren(...filas);
-}
-
 function mostrarProductos(productos) {
+    const cuerpo = porId("productos");
+    const etiquetas = [...cuerpo.parentElement.tHead.rows[0].cells].slice(1)
+        .map((encabezado) => encabezado.textContent);
     const filas = productos.map((producto) => {
         const fila = document.createElement("tr");
         celda(fila, producto.nombre, { encabezado: true, detalle: `${gramos(producto.gramos_por_pieza)} por pieza` });
@@ -116,51 +97,32 @@ function mostrarProductos(productos) {
         celda(fila, numero(producto.proporcional));
         celda(fila, gramos(producto.masa_asignada_g));
         celda(fila, porcentaje(producto.cobertura_pct));
+        etiquetas.forEach((nombre, indice) => {
+            const etiqueta = document.createElement("span");
+            etiqueta.className = "etiqueta-celda";
+            etiqueta.setAttribute("aria-hidden", "true");
+            etiqueta.textContent = nombre;
+            fila.cells[indice + 1].prepend(etiqueta);
+        });
         return fila;
     });
-    mostrarFilasAdaptables("productos", filas);
+    cuerpo.replaceChildren(...filas);
 }
 
-function mostrarComparacion(datos) {
-    const { resultado, criterio } = datos.comparacion;
-    porId("veredicto").dataset.resultado = resultado;
-    texto("ganador", titulosVeredicto[resultado]);
-    texto("motivo", criterio ? ventajas[criterio] : "Los tres criterios tienen el mismo valor.");
-    const filas = metricas.map(({ clave, nombre, formato }) => {
-        const fila = document.createElement("tr");
-        celda(fila, nombre, { encabezado: true });
-        celda(fila, formato(datos.genetico[clave]), { clase: "col-genetico" });
-        celda(fila, formato(datos.proporcional[clave]));
-        return fila;
-    });
-    porId("criterios").replaceChildren(...filas);
-}
-
-function mostrarSemillas(semillas) {
-    porId("resumen-semillas").hidden = !semillas.length;
-    comparar.setAttribute("aria-expanded", String(semillas.length > 0));
-    if (!semillas.length) return;
-    const conteo = { gana: 0, empata: 0, pierde: 0 };
-    const filas = semillas.map((corrida) => {
-        conteo[corrida.resultado] += 1;
-        const fila = document.createElement("tr");
-        celda(fila, numero(corrida.semilla), { encabezado: true });
-        for (const { clave, formato } of metricas) {
-            celda(fila, formato(corrida[clave]));
-        }
-        celda(fila, resultadosSemilla[corrida.resultado]);
-        const metrica = metricas.find(({ criterio }) => criterio === corrida.criterio);
-        celda(fila, metrica?.nombre ?? "Igual aptitud");
-        return fila;
-    });
-    texto("conteo-semillas", `${conteo.gana} ganan · ${conteo.empata} empatan · ${conteo.pierde} quedan por debajo`);
-    mostrarFilasAdaptables("semillas", filas);
+function mostrarVeredicto({ resultado, criterio }) {
+    const motivo = criterio ? ` ${ventajas[criterio]}` : "";
+    texto("veredicto", `${titulosVeredicto[resultado]}.${motivo}`);
 }
 
 function mostrarPlan(datos) {
-    planActual = datos;
     const resultado = datos.genetico;
     const config = datos.configuracion;
+    const rondas = resultado.generaciones_ejecutadas;
+    if (planActual?.nombre !== datos.nombre || Number(generacion.max) !== rondas) {
+        generacion.max = rondas;
+        generacion.value = rondas;
+    }
+    planActual = datos;
     let titulo = datos.nombre;
     if (datos.productos_modificados) {
         titulo = "Simulación personalizada";
@@ -176,9 +138,7 @@ function mostrarPlan(datos) {
     texto("masa-total", `De ${gramos(datos.masa_disponible_g)} disponibles`);
     texto("masa-sobrante", gramos(resultado.masa_sobrante_g));
     mostrarProductos(datos.productos);
-    mostrarComparacion(datos);
-    mostrarSemillas(datos.semillas);
-    const rondas = resultado.generaciones_ejecutadas;
+    mostrarVeredicto(datos.comparacion);
     let modo = `${numero(rondas)} ${rondas === 1 ? "generación" : "generaciones"}`;
     if (resultado.trivial) modo = "Cálculo directo";
     else if (!rondas) modo = "Solo población inicial";
@@ -196,11 +156,8 @@ function mostrarPlan(datos) {
         texto("solucion-directa", "El programa eligió el mejor plan de la población inicial. Configura una generación o más para ver la evolución.");
     }
     porId("solucion-directa").hidden = rondas > 0;
-    porId("opciones-evolucion").hidden = resultado.trivial;
-    porId("campo-metrica").hidden = !rondas;
     porId("evolucion-grafica").hidden = !rondas;
-    generacion.max = rondas;
-    generacion.value = rondas;
+    porId("configuracion").hidden = resultado.trivial;
     porId("resultado").hidden = false;
     actualizarGeneracion();
 }
@@ -215,9 +172,9 @@ function actualizarGeneracion() {
     dibujarGrafica();
 }
 
-function escalaGrafica(valores, porcentual) {
-    let inferior = Infinity;
-    let superior = -Infinity;
+function escalaGrafica(valores, referencia, porcentual) {
+    let inferior = referencia;
+    let superior = referencia;
     for (const valor of valores) {
         inferior = Math.min(inferior, valor);
         superior = Math.max(superior, valor);
@@ -256,12 +213,13 @@ function dibujarGrafica() {
     ctx.font = `13px ${estilos.getPropertyValue("--cuerpo")}`;
     const tinta = estilos.getPropertyValue("--secundario");
     const acento = estilos.getPropertyValue("--acento");
-    const borde = estilos.getPropertyValue("--borde");
+    const rejilla = estilos.getPropertyValue("--rejilla");
 
-    const { clave, nombre, formato } = metricas.find(({ clave }) => clave === metricaGrafica.value);
+    const { value: clave, label: nombre } = metricaGrafica.selectedOptions[0];
+    const formato = formatosMetricas[clave];
     const referencia = planActual.proporcional[clave];
     const valores = planActual.genetico.historial.map((medidas) => medidas[clave]);
-    const marcas = escalaGrafica([...valores, referencia], clave === "cobertura_minima_pct");
+    const marcas = escalaGrafica(valores, referencia, clave === "cobertura_minima_pct");
     const minimo = marcas[0];
     const maximo = marcas.at(-1);
     const etiquetas = marcas.map(formato);
@@ -274,10 +232,10 @@ function dibujarGrafica() {
 
     ctx.fillStyle = tinta;
     ctx.textBaseline = "middle";
-    ctx.strokeStyle = borde;
+    ctx.textAlign = "right";
+    ctx.strokeStyle = rejilla;
     ctx.lineWidth = 1;
     for (const [indice, valor] of marcas.entries()) {
-        ctx.textAlign = "right";
         ctx.fillText(etiquetas[indice], margenIzq - 8, y(valor));
         ctx.beginPath();
         ctx.moveTo(margenIzq, y(valor));
@@ -323,10 +281,12 @@ function dibujarGrafica() {
     ctx.beginPath();
     ctx.arc(x(seleccionado), y(valores[seleccionado]), 4, 0, Math.PI * 2);
     ctx.fill();
-    grafica.setAttribute("aria-label", `${nombre} por generación. Inicio ${formato(valores[0])}, final ${formato(valores.at(-1))}, referencia ${formato(referencia)}.`);
+    const referenciaFormateada = formato(referencia);
+    texto("referencia-grafica", `Reparto proporcional · ${referenciaFormateada}`);
+    grafica.setAttribute("aria-label", `${nombre} por generación. Inicio ${formato(valores[0])}, final ${formato(valores.at(-1))}, referencia ${referenciaFormateada}.`);
 }
 
-function leerSolicitud(compararSemillas) {
+function leerSolicitud() {
     const { poblacion, torneo } = camposConfiguracion;
     torneo.setCustomValidity(torneo.valueAsNumber > poblacion.valueAsNumber
         ? "El torneo debe tener como máximo tantos candidatos como la población." : "");
@@ -342,14 +302,6 @@ function leerSolicitud(compararSemillas) {
         invalido.reportValidity();
         return null;
     }
-    const semillas = compararSemillas ? campoSemillas.value.trim().split(/[,\s]+/) : [];
-    if (semillas.some((semilla) => !/^[+-]?\d+$/.test(semilla) || !Number.isSafeInteger(Number(semilla)))) {
-        porId("editar-parametros").open = true;
-        actualizarEstado("Escribe una o más semillas enteras separadas con comas.", { error: true });
-        campoSemillas.focus();
-        return null;
-    }
-
     return {
         escenario: selector.value,
         masa_disponible_g: campoMasa.valueAsNumber,
@@ -362,16 +314,15 @@ function leerSolicitud(compararSemillas) {
         configuracion: Object.fromEntries(Object.entries(camposConfiguracion).map(([clave, campo]) =>
             [clave, clave.startsWith("prob_") ? campo.valueAsNumber / 100 : campo.valueAsNumber]
         )),
-        semillas_comparacion: semillas.map(Number),
     };
 }
 
-async function calcular(compararSemillas = false) {
-    const solicitud = leerSolicitud(compararSemillas);
+async function calcular() {
+    const solicitud = leerSolicitud();
     if (!solicitud) return;
 
     ocuparControles(true);
-    actualizarEstado(compararSemillas ? "Comparando las semillas seleccionadas…" : "Calculando el plan de producción…");
+    actualizarEstado("Calculando el plan de producción…");
     try {
         const datos = await pedirDatos("/api/plan", {
             method: "POST",
@@ -380,7 +331,6 @@ async function calcular(compararSemillas = false) {
         });
         actualizarEstado("Plan actualizado.", { soloLectores: true });
         mostrarPlan(datos);
-        if (compararSemillas) porId("semillas-titulo").focus();
         return true;
     } catch (error) {
         planActual = null;
@@ -429,12 +379,11 @@ function cargarEscenario() {
 }
 
 function cargarParametros() {
-    const { configuracion, semillas } = valoresIniciales;
     for (const [clave, campo] of Object.entries(camposConfiguracion)) {
-        campo.value = clave.startsWith("prob_") ? configuracion[clave] * 100 : configuracion[clave];
+        const valor = configuracionInicial[clave];
+        campo.value = clave.startsWith("prob_") ? valor * 100 : valor;
     }
-    campoSemillas.value = semillas.join(", ");
-    texto("valor-elitismo", configuracion.elitismo);
+    texto("valor-elitismo", configuracionInicial.elitismo);
 }
 
 function indicarCambios() {
@@ -443,11 +392,11 @@ function indicarCambios() {
 
 async function iniciar() {
     try {
-        const [datos, iniciales] = await Promise.all([
+        const [datos, { configuracion }] = await Promise.all([
             pedirDatos("/api/escenarios"),
             pedirDatos("/api/configuracion"),
         ]);
-        valoresIniciales = iniciales;
+        configuracionInicial = configuracion;
         const principales = document.createElement("optgroup");
         principales.label = "Escenarios de demostración";
         const limites = document.createElement("optgroup");
@@ -457,10 +406,19 @@ async function iniciar() {
             const grupo = escenario.id.startsWith("casos_limite/") ? limites : principales;
             grupo.append(new Option(escenario.nombre, escenario.id));
         }
-        const grupos = [principales, limites].filter((grupo) => grupo.childElementCount);
-        selector.replaceChildren(...grupos, new Option("Personalizado", "personalizado"));
-        selector.value = escenarios.has("escasez_moderada.json")
-            ? "escasez_moderada.json" : datos[0]?.id ?? "personalizado";
+        const personalizado = new Option("Personalizado", "personalizado");
+        selector.replaceChildren(principales, personalizado);
+        const preferido = "escasez_moderada.json";
+        selector.value = escenarios.has(preferido) ? preferido : principales.firstElementChild?.value ?? personalizado.value;
+        if (limites.childElementCount) {
+            const mostrarLimites = porId("mostrar-casos-limite");
+            mostrarLimites.hidden = false;
+            mostrarLimites.addEventListener("click", () => {
+                selector.insertBefore(limites, personalizado);
+                mostrarLimites.hidden = true;
+                selector.focus();
+            }, { once: true });
+        }
         cargarParametros();
         const precargado = cargarEscenario();
         ocuparControles(false);
@@ -505,7 +463,6 @@ porId("restaurar-parametros").addEventListener("click", () => {
     cargarParametros();
     indicarCambios();
 });
-comparar.addEventListener("click", () => calcular(true));
 generacion.addEventListener("input", actualizarGeneracion);
 metricaGrafica.addEventListener("change", dibujarGrafica);
 new ResizeObserver(dibujarGrafica).observe(grafica);

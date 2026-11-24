@@ -9,14 +9,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from .genetico import ResultadoGenetico
-from .modelo import Aptitud, Escenario, Plan, medir
+from .modelo import CRITERIOS, Aptitud, Escenario, Plan, comparar_aptitudes, medir
 
 ARCHIVOS_CSV = ("corridas.csv", "detalle_productos.csv", "evolucion.csv")
-CRITERIOS = {
-    "cobertura_minima": "cobertura mínima",
-    "piezas_totales": "piezas totales",
-    "masa_usada_g": "masa usada",
-}
 
 
 @dataclass(frozen=True)
@@ -25,14 +20,6 @@ class ComparacionEscenario:
     escenario: Escenario
     proporcional: Plan
     geneticos: tuple[ResultadoGenetico, ...]
-
-
-def comparar_aptitudes(genetica: Aptitud, proporcional: Aptitud) -> tuple[str, str]:
-    for campo, valor_genetico, valor_proporcional in zip(CRITERIOS, genetica, proporcional):
-        if valor_genetico != valor_proporcional:
-            resultado = "gana" if valor_genetico > valor_proporcional else "pierde"
-            return resultado, campo
-    return "empata", ""
 
 
 def _fraccion(valor: Fraction) -> str:
@@ -58,7 +45,7 @@ def _detalle(
             producto.demanda - cantidad,
             producto.gramos_por_pieza,
             cantidad * producto.gramos_por_pieza,
-            Fraction(cantidad, producto.demanda) if producto.demanda else None,
+            producto.cobertura(cantidad),
         )
 
 

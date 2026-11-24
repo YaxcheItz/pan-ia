@@ -14,10 +14,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from .genetico import SEMILLAS_DEMOSTRACION, Configuracion, optimizar
-from .modelo import Escenario, Plan, Producto, leer_escenario, medir, validar_escenario
+from .genetico import Configuracion, optimizar
+from .modelo import (
+    Escenario, Plan, Producto, comparar_aptitudes, leer_escenario, medir, validar_escenario,
+)
 from .proporcional import repartir
-from .reportes import ARCHIVOS_CSV, comparar_aptitudes
 
 RAIZ = Path(__file__).resolve().parents[1]
 PANEL = Path(__file__).with_name("panel")
@@ -30,7 +31,6 @@ RECURSOS = {
     "/panel.css": ("panel.css", "text/css"),
     "/panel.js": ("panel.js", "text/javascript"),
 }
-REGISTROS = {f"/registros/{nombre}": nombre for nombre in ARCHIVOS_CSV}
 
 
 def leer_escenarios_panel() -> dict[str, Escenario]:
@@ -58,20 +58,14 @@ def _metricas(escenario: Escenario, plan: Plan) -> dict:
     }
 
 
-def _comparacion(plan: Plan, referencia: Plan) -> dict:
-    resultado, criterio = comparar_aptitudes(plan.aptitud, referencia.aptitud)
-    return {"resultado": resultado, "criterio": criterio}
-
-
 def _configuracion_panel(configuracion: Configuracion) -> dict:
     return {**asdict(configuracion), "elitismo": configuracion.elitismo}
 
 
 def calcular_panel(
-    escenario: Escenario, masa: int, semilla: int, comparar_semillas: bool, *,
+    escenario: Escenario, masa: int, semilla: int, *,
     configuracion: Configuracion = CONFIGURACION,
     productos_editados: tuple[Producto, ...] | None = None,
-    semillas_comparacion: tuple[int, ...] = SEMILLAS_DEMOSTRACION,
 ) -> dict:
     if masa < 0:
         raise ValueError("Escribe una masa disponible mayor o igual a cero.")
@@ -83,30 +77,20 @@ def calcular_panel(
     demanda_total = jornada.demanda_total
     proporcional = repartir(jornada)
     genetico = optimizar(jornada, semilla, configuracion)
+    resultado, criterio = comparar_aptitudes(genetico.plan.aptitud, proporcional.aptitud)
 
     productos = []
     for producto, piezas, referencia in zip(
         jornada.productos, genetico.plan.piezas, proporcional.piezas
     ):
-        cobertura = Fraction(piezas, producto.demanda) if producto.demanda else None
         productos.append({
             **asdict(producto),
             "genetico": piezas,
             "proporcional": referencia,
             "pendientes": producto.demanda - piezas,
             "masa_asignada_g": piezas * producto.gramos_por_pieza,
-            "cobertura_pct": _porcentaje(cobertura),
+            "cobertura_pct": _porcentaje(producto.cobertura(piezas)),
         })
-
-    semillas = []
-    if comparar_semillas:
-        for valor in semillas_comparacion:
-            corrida = genetico if valor == semilla else optimizar(jornada, valor, configuracion)
-            semillas.append({
-                "semilla": valor,
-                **_metricas(jornada, corrida.plan),
-                **_comparacion(corrida.plan, proporcional),
-            })
 
     return {
         "nombre": jornada.nombre,
@@ -130,9 +114,8 @@ def calcular_panel(
             ],
         },
         "proporcional": _metricas(jornada, proporcional),
-        "comparacion": _comparacion(genetico.plan, proporcional),
+        "comparacion": {"resultado": resultado, "criterio": criterio},
         "productos": productos,
-        "semillas": semillas,
     }
 
 
@@ -145,14 +128,15 @@ def _calcular_plan_editado(escenarios: dict[str, Escenario], datos: object) -> d
     escenario = escenarios.get(identificador)
     if escenario is None and identificador != "personalizado":
         raise ValueError("Selecciona un escenario de la lista.")
+    productos = datos.get("productos")
+    if "productos" not in datos and escenario is not None:
+        productos = [asdict(producto) for producto in escenario.productos]
     jornada = validar_escenario({
         "escenario": escenario.nombre if escenario else "Simulación personalizada",
         "masa_disponible_g": datos.get(
             "masa_disponible_g", escenario.masa_disponible_g if escenario else None
         ),
-        "productos": datos.get(
-            "productos", [asdict(p) for p in escenario.productos] if escenario else None
-        ),
+        "productos": productos,
     })
     semilla = datos.get("semilla", 42)
     if type(semilla) is not int:
@@ -163,14 +147,10 @@ def _calcular_plan_editado(escenarios: dict[str, Escenario], datos: object) -> d
         raise ValueError("Usa los parámetros de búsqueda disponibles en el panel.")
     configuracion = replace(CONFIGURACION, **opciones)
 
-    semillas = datos.get("semillas_comparacion", [])
-    if not isinstance(semillas, list) or any(type(valor) is not int for valor in semillas):
-        raise ValueError("Escribe números enteros en la lista de semillas.")
     return calcular_panel(
-        escenario or jornada, jornada.masa_disponible_g, semilla, bool(semillas),
+        escenario or jornada, jornada.masa_disponible_g, semilla,
         configuracion=configuracion,
         productos_editados=jornada.productos,
-        semillas_comparacion=tuple(dict.fromkeys(semillas)),
     )
 
 
@@ -180,28 +160,26 @@ class _PeticionPanel(BaseHTTPRequestHandler):
     def log_message(self, formato, *argumentos):
         pass
 
-    def _enviar(self, contenido, tipo, estado=200, descarga=None):
+    def _enviar(self, contenido, tipo, estado=200):
         self.send_response(estado)
         self.send_header("Content-Type", f"{tipo}; charset=utf-8")
         self.send_header("Content-Length", str(len(contenido)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
-        if descarga:
-            self.send_header("Content-Disposition", f'attachment; filename="{descarga}"')
         self.end_headers()
         self.wfile.write(contenido)
 
     def _json(self, datos, estado=200):
         self._enviar(json.dumps(datos, ensure_ascii=False).encode("utf-8"), "application/json", estado)
 
-    def _archivo(self, archivo: Path, tipo: str, descarga=None):
+    def _archivo(self, archivo: Path, tipo: str):
         try:
             contenido = archivo.read_bytes()
         except OSError:
             self._json({"error": f"El archivo «{archivo.name}» no está disponible."}, 404)
             return
-        self._enviar(contenido, tipo, descarga=descarga)
+        self._enviar(contenido, tipo)
 
     def _calcular(self, consulta: str):
         parametros = parse_qs(consulta, keep_blank_values=True)
@@ -217,8 +195,7 @@ class _PeticionPanel(BaseHTTPRequestHandler):
             self._json({"error": "Escribe números enteros en masa disponible y semilla."}, 400)
             return
         try:
-            comparar = parametros.get("comparar", ["0"])[0] == "1"
-            self._json(calcular_panel(escenario, masa, semilla, comparar))
+            self._json(calcular_panel(escenario, masa, semilla))
         except ValueError as error:
             self._json({"error": str(error)}, 400)
 
@@ -237,13 +214,9 @@ class _PeticionPanel(BaseHTTPRequestHandler):
         elif ruta.path == "/api/configuracion":
             self._json({
                 "configuracion": _configuracion_panel(CONFIGURACION),
-                "semillas": SEMILLAS_DEMOSTRACION,
             })
         elif ruta.path == "/api/plan":
             self._calcular(ruta.query)
-        elif ruta.path in REGISTROS:
-            nombre = REGISTROS[ruta.path]
-            self._archivo(RAIZ / "resultados" / nombre, "text/csv", descarga=nombre)
         elif ruta.path == "/favicon.ico":
             self._enviar(b"", "image/x-icon", 204)
         else:
