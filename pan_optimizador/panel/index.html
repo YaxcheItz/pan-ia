@@ -32,7 +32,7 @@
                         <label for="masa">Masa disponible (g)</label>
                         <input id="masa" type="number" inputmode="numeric" min="0" step="1" required>
                     </div>
-                    <button type="submit" class="boton boton-primario" id="calcular">Calcular plan</button>
+                    <button type="submit" class="boton boton-primario">Calcular plan</button>
                 </div>
 
                 <div class="editores">
@@ -47,7 +47,7 @@
                         </div>
                     </details>
 
-                    <details class="apertura editor" id="editar-parametros">
+                    <details class="apertura editor">
                         <summary>Parámetros del algoritmo</summary>
                         <div class="editor-contenido">
                             <div class="parametros-edicion">
@@ -146,7 +146,7 @@
                 </div>
             </section>
 
-            <details class="apertura evolucion" id="detalle-evolucion" open>
+            <details class="apertura evolucion" open>
                 <summary>
                     <span class="titulo-evolucion">Evolución del algoritmo <small id="modo-evolucion"></small></span>
                 </summary>
@@ -180,7 +180,7 @@
                         <div id="evolucion-grafica" hidden>
                             <header class="encabezado-evolucion">
                                 <div class="leyenda">
-                                    <span><i class="trazo" aria-hidden="true"></i> Mejor plan genético</span>
+                                    <i class="trazo" aria-hidden="true"></i> Mejor plan genético
                                 </div>
                                 <div class="campo">
                                     <label for="metrica">Métrica</label>

@@ -192,8 +192,7 @@ summary::-webkit-details-marker { display: none; }
 .encabezado-evolucion .campo { display: flex; align-items: center; gap: 8px; }
 #configuracion { color: var(--secundario); font-size: .83rem; text-wrap: pretty; }
 .aviso-directo { background: var(--resalte); padding: 9px 12px; border-radius: 5px; }
-.leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--secundario); font-size: .89rem; }
-.leyenda > span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda { display: flex; align-items: center; gap: 6px; color: var(--secundario); font-size: .89rem; }
 .trazo { flex: none; width: 21px; border-top: 3px solid var(--acento); }
 .vista-evolucion { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 12px; color: var(--secundario); font-size: .88rem; }
 .vista-evolucion label { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; color: var(--acento); cursor: pointer; font-weight: 650; }

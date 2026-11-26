@@ -3,7 +3,6 @@ import threading
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
-from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from pan_optimizador.interfaz import ServidorPanel, _iniciar_en_segundo_plano, _panel_activo
@@ -25,15 +24,10 @@ class InterfazTest(unittest.TestCase):
         with urlopen(self.url + ruta, timeout=15) as respuesta:
             return respuesta.headers, respuesta.read()
 
-    def pedir_plan(self, identificador, **parametros):
-        consulta = urlencode({"escenario": identificador, **parametros})
-        _, contenido = self.pedir(f"/api/plan?{consulta}")
-        return json.loads(contenido)
-
-    def calcular_edicion(self, **datos):
+    def pedir_plan(self, escenario, **datos):
         peticion = Request(
             self.url + "/api/plan",
-            data=json.dumps(datos).encode("utf-8"),
+            data=json.dumps({"escenario": escenario, **datos}).encode("utf-8"),
             headers={"Content-Type": "application/json"},
         )
         with urlopen(peticion, timeout=15) as respuesta:
@@ -44,8 +38,6 @@ class InterfazTest(unittest.TestCase):
         self.assertEqual(encabezados.get_content_type(), "text/html")
         self.assertIn("Planificador de producción", pagina.decode("utf-8"))
         self.assertIn(b'id="grafica"', pagina)
-        self.assertNotIn(b"comparar-semillas", pagina)
-        self.assertNotIn(b"/registros/", pagina)
         for ruta, tipo in (("/panel.css", "text/css"), ("/panel.js", "text/javascript")):
             encabezados, contenido = self.pedir(ruta)
             self.assertEqual(encabezados.get_content_type(), tipo)
@@ -61,7 +53,6 @@ class InterfazTest(unittest.TestCase):
         parametros = json.loads(parametros)
         self.assertEqual(parametros["configuracion"]["generaciones"], 160)
         self.assertEqual(parametros["configuracion"]["elitismo"], 1)
-        self.assertNotIn("semillas", parametros)
 
     def test_el_lanzador_reutiliza_el_servidor_del_proyecto(self):
         self.assertTrue(_panel_activo(self.puerto))
@@ -71,28 +62,22 @@ class InterfazTest(unittest.TestCase):
 
     def test_panel_calcula_la_referencia_de_10_kg_y_su_historial(self):
         datos = self.pedir_plan("escasez_moderada.json", semilla=42)
-        self.assertEqual([producto["genetico"] for producto in datos["productos"]], [53, 31, 22])
-        self.assertEqual([producto["proporcional"] for producto in datos["productos"]], [53, 31, 22])
+        self.assertEqual([p["genetico"] for p in datos["productos"]], [53, 31, 22])
         plan = datos["genetico"]
         self.assertEqual((plan["piezas_totales"], plan["masa_usada_g"], plan["masa_sobrante_g"]),
                          (106, 9980, 20))
         self.assertEqual((plan["cobertura_minima_pct"], plan["cobertura_total_pct"]), (88, 88.33))
         self.assertEqual(len(plan["historial"]), 161)
         self.assertEqual(plan["historial"][-1]["piezas_totales"], 106)
-        self.assertEqual(datos["comparacion"], {"resultado": "empata", "criterio": ""})
 
-    def test_compara_metodos_para_demanda_cero_con_el_criterio_correcto(self):
+    def test_panel_muestra_cobertura_no_aplicable_por_producto(self):
         datos = self.pedir_plan("demanda_cero_producto_b.json", semilla=21)
         self.assertEqual(datos["genetico"]["piezas_totales"], 32)
-        self.assertEqual(datos["proporcional"]["piezas_totales"], 33)
         self.assertEqual(datos["genetico"]["cobertura_minima_pct"], 36.67)
-        self.assertEqual(datos["proporcional"]["cobertura_minima_pct"], 36)
         self.assertIsNone(datos["productos"][1]["cobertura_pct"])
-        self.assertEqual(datos["comparacion"], {"resultado": "gana", "criterio": "cobertura_minima"})
-        self.assertNotIn("semillas", datos)
 
     def test_masa_ajustada_y_cobertura_no_aplicable(self):
-        datos = self.pedir_plan("escasez_moderada.json", masa=0)
+        datos = self.pedir_plan("escasez_moderada.json", masa_disponible_g=0)
         self.assertTrue(datos["masa_modificada"])
         self.assertTrue(datos["genetico"]["trivial"])
         self.assertEqual(datos["genetico"]["cobertura_minima_pct"], 0)
@@ -111,35 +96,28 @@ class InterfazTest(unittest.TestCase):
         productos.append({"nombre": "Concha", "gramos_por_pieza": 75, "demanda": 10})
         for identificador in (escenario["id"], "personalizado"):
             with self.subTest(identificador=identificador):
-                datos = self.calcular_edicion(
-                    escenario=identificador, productos=productos, masa_disponible_g=10_000,
-                )
+                datos = self.pedir_plan(identificador, productos=productos, masa_disponible_g=10_000)
                 self.assertEqual([p["genetico"] for p in datos["productos"]], [20, 35, 25, 10])
+                self.assertEqual(datos["productos_modificados"], identificador == escenario["id"])
                 self.assertEqual(datos["productos"][-1]["masa_asignada_g"], 750)
-                for metodo in ("genetico", "proporcional"):
-                    self.assertEqual(datos[metodo]["masa_usada_g"], 9_050)
-                    self.assertEqual(datos[metodo]["masa_sobrante_g"], 950)
+                self.assertEqual(datos["genetico"]["masa_usada_g"], 9_050)
+                self.assertEqual(datos["genetico"]["masa_sobrante_g"], 950)
         _, catalogo_posterior = self.pedir("/api/escenarios")
         self.assertEqual(catalogo_posterior, catalogo)
 
-    def test_aplica_configuracion_y_semilla_del_panel(self):
+    def test_aplica_configuracion_del_panel(self):
         config = {
             "poblacion": 2, "generaciones": 0, "torneo": 2,
             "prob_cruce": 0, "prob_mutacion": 0.25,
         }
-        solicitud = {
-            "escenario": "escasez_moderada.json", "semilla": 99,
-            "configuracion": config,
-        }
-        datos = self.calcular_edicion(**solicitud)
+        datos = self.pedir_plan("escasez_moderada.json", configuracion=config)
         self.assertEqual(datos["configuracion"], {**config, "elitismo": 1})
-        self.assertEqual(datos["genetico"]["semilla"], 99)
         self.assertFalse(datos["genetico"]["trivial"])
         self.assertEqual(datos["genetico"]["generaciones_ejecutadas"], 0)
         self.assertEqual(len(datos["genetico"]["historial"]), 1)
         self.assertEqual([p["genetico"] for p in datos["productos"]], [53, 30, 22])
         config["generaciones"] = 3
-        con_rondas = self.calcular_edicion(**solicitud)
+        con_rondas = self.pedir_plan("escasez_moderada.json", configuracion=config)
         self.assertEqual(con_rondas["genetico"]["generaciones_ejecutadas"], 3)
         self.assertEqual(len(con_rondas["genetico"]["historial"]), 4)
 
@@ -153,7 +131,7 @@ class InterfazTest(unittest.TestCase):
         ):
             with self.subTest(cambios=cambios):
                 with self.assertRaises(HTTPError) as error:
-                    self.calcular_edicion(escenario="escasez_moderada.json", **cambios)
+                    self.pedir_plan("escasez_moderada.json", **cambios)
                 with error.exception as respuesta:
                     self.assertEqual(respuesta.code, 400)
                     self.assertIn(mensaje, json.load(respuesta)["error"])
@@ -161,8 +139,7 @@ class InterfazTest(unittest.TestCase):
     def test_rechaza_valores_invalidos_y_rutas_ajenas_al_panel(self):
         for identificador, valores, mensaje in (
             ("inexistente.json", {}, "escenario"),
-            ("masa_suficiente.json", {"masa": -1}, "mayor o igual a cero"),
-            ("masa_suficiente.json", {"semilla": 2.5}, "números enteros"),
+            ("masa_suficiente.json", {"masa_disponible_g": -1}, "mayor o igual a 0"),
         ):
             with self.subTest(identificador=identificador, valores=valores):
                 with self.assertRaises(HTTPError) as error:
@@ -170,7 +147,7 @@ class InterfazTest(unittest.TestCase):
                 with error.exception as respuesta:
                     self.assertEqual(respuesta.code, 400)
                     self.assertIn(mensaje, json.load(respuesta)["error"])
-        for ruta in ("/README.md", "/registros/evolucion.csv"):
+        for ruta in ("/README.md", "/registros/evolucion.csv", "/api/plan"):
             with self.subTest(ruta=ruta):
                 with self.assertRaises(HTTPError) as error:
                     self.pedir(ruta)

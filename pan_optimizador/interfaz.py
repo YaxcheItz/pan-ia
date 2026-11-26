@@ -12,13 +12,10 @@ from fractions import Fraction
 from http.client import HTTPConnection, HTTPException
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 
 from .genetico import Configuracion, optimizar
-from .modelo import (
-    Escenario, Plan, Producto, comparar_aptitudes, leer_escenario, medir, validar_escenario,
-)
-from .proporcional import repartir
+from .modelo import Escenario, leer_escenario, medir, validar_escenario
 
 RAIZ = Path(__file__).resolve().parents[1]
 PANEL = Path(__file__).with_name("panel")
@@ -47,79 +44,11 @@ def _porcentaje(valor: Fraction | None) -> float | None:
     return round(valor * 10000) / 100 if valor is not None else None
 
 
-def _metricas(escenario: Escenario, plan: Plan) -> dict:
-    datos = medir(escenario, plan)
-    return {
-        "piezas_totales": datos.piezas_totales,
-        "masa_usada_g": datos.masa_usada_g,
-        "masa_sobrante_g": datos.masa_sobrante_g,
-        "cobertura_minima_pct": _porcentaje(datos.cobertura_minima),
-        "cobertura_total_pct": _porcentaje(datos.cobertura_total),
-    }
-
-
 def _configuracion_panel(configuracion: Configuracion) -> dict:
     return {**asdict(configuracion), "elitismo": configuracion.elitismo}
 
 
-def calcular_panel(
-    escenario: Escenario, masa: int, semilla: int, *,
-    configuracion: Configuracion = CONFIGURACION,
-    productos_editados: tuple[Producto, ...] | None = None,
-) -> dict:
-    if masa < 0:
-        raise ValueError("Escribe una masa disponible mayor o igual a cero.")
-    jornada = replace(
-        escenario,
-        masa_disponible_g=masa,
-        productos=escenario.productos if productos_editados is None else productos_editados,
-    )
-    demanda_total = jornada.demanda_total
-    proporcional = repartir(jornada)
-    genetico = optimizar(jornada, semilla, configuracion)
-    resultado, criterio = comparar_aptitudes(genetico.plan.aptitud, proporcional.aptitud)
-
-    productos = []
-    for producto, piezas, referencia in zip(
-        jornada.productos, genetico.plan.piezas, proporcional.piezas
-    ):
-        productos.append({
-            **asdict(producto),
-            "genetico": piezas,
-            "proporcional": referencia,
-            "pendientes": producto.demanda - piezas,
-            "masa_asignada_g": piezas * producto.gramos_por_pieza,
-            "cobertura_pct": _porcentaje(producto.cobertura(piezas)),
-        })
-
-    return {
-        "nombre": jornada.nombre,
-        "masa_disponible_g": masa,
-        "masa_modificada": masa != escenario.masa_disponible_g,
-        "productos_modificados": jornada.productos != escenario.productos,
-        "demanda_total": demanda_total,
-        "configuracion": _configuracion_panel(configuracion),
-        "genetico": {
-            **_metricas(jornada, genetico.plan),
-            "semilla": semilla,
-            "trivial": genetico.trivial,
-            "generaciones_ejecutadas": genetico.generaciones_ejecutadas,
-            "historial": [
-                {
-                    "cobertura_minima_pct": _porcentaje(minima if demanda_total else None),
-                    "piezas_totales": piezas,
-                    "masa_usada_g": gramos,
-                }
-                for minima, piezas, gramos in genetico.historial
-            ],
-        },
-        "proporcional": _metricas(jornada, proporcional),
-        "comparacion": {"resultado": resultado, "criterio": criterio},
-        "productos": productos,
-    }
-
-
-def _calcular_plan_editado(escenarios: dict[str, Escenario], datos: object) -> dict:
+def _calcular_plan(escenarios: dict[str, Escenario], datos: object) -> dict:
     if not isinstance(datos, dict):
         raise ValueError("Envía los datos del plan en un objeto JSON.")
     identificador = datos.get("escenario")
@@ -147,11 +76,45 @@ def _calcular_plan_editado(escenarios: dict[str, Escenario], datos: object) -> d
         raise ValueError("Usa los parámetros de búsqueda disponibles en el panel.")
     configuracion = replace(CONFIGURACION, **opciones)
 
-    return calcular_panel(
-        escenario or jornada, jornada.masa_disponible_g, semilla,
-        configuracion=configuracion,
-        productos_editados=jornada.productos,
-    )
+    genetico = optimizar(jornada, semilla, configuracion)
+    metricas = medir(jornada, genetico.plan)
+    demanda_total = jornada.demanda_total
+    original = escenario or jornada
+    return {
+        "nombre": jornada.nombre,
+        "masa_disponible_g": jornada.masa_disponible_g,
+        "masa_modificada": jornada.masa_disponible_g != original.masa_disponible_g,
+        "productos_modificados": jornada.productos != original.productos,
+        "demanda_total": demanda_total,
+        "configuracion": _configuracion_panel(configuracion),
+        "genetico": {
+            "piezas_totales": metricas.piezas_totales,
+            "masa_usada_g": metricas.masa_usada_g,
+            "masa_sobrante_g": metricas.masa_sobrante_g,
+            "cobertura_minima_pct": _porcentaje(metricas.cobertura_minima),
+            "cobertura_total_pct": _porcentaje(metricas.cobertura_total),
+            "trivial": genetico.trivial,
+            "generaciones_ejecutadas": genetico.generaciones_ejecutadas,
+            "historial": [
+                {
+                    "cobertura_minima_pct": _porcentaje(minima if demanda_total else None),
+                    "piezas_totales": piezas,
+                    "masa_usada_g": gramos,
+                }
+                for minima, piezas, gramos in genetico.historial
+            ],
+        },
+        "productos": [
+            {
+                **asdict(producto),
+                "genetico": piezas,
+                "pendientes": producto.demanda - piezas,
+                "masa_asignada_g": piezas * producto.gramos_por_pieza,
+                "cobertura_pct": _porcentaje(producto.cobertura(piezas)),
+            }
+            for producto, piezas in zip(jornada.productos, genetico.plan.piezas)
+        ],
+    }
 
 
 class _PeticionPanel(BaseHTTPRequestHandler):
@@ -181,43 +144,23 @@ class _PeticionPanel(BaseHTTPRequestHandler):
             return
         self._enviar(contenido, tipo)
 
-    def _calcular(self, consulta: str):
-        parametros = parse_qs(consulta, keep_blank_values=True)
-        identificador = parametros.get("escenario", [""])[0]
-        escenario = self.server.escenarios.get(identificador)
-        if escenario is None:
-            self._json({"error": "Selecciona un escenario de la lista."}, 400)
-            return
-        try:
-            masa = int(parametros.get("masa", [str(escenario.masa_disponible_g)])[0])
-            semilla = int(parametros.get("semilla", ["42"])[0])
-        except ValueError:
-            self._json({"error": "Escribe números enteros en masa disponible y semilla."}, 400)
-            return
-        try:
-            self._json(calcular_panel(escenario, masa, semilla))
-        except ValueError as error:
-            self._json({"error": str(error)}, 400)
-
     def do_GET(self):
-        ruta = urlsplit(self.path)
-        if ruta.path in RECURSOS:
-            archivo, tipo = RECURSOS[ruta.path]
+        ruta = urlsplit(self.path).path
+        if ruta in RECURSOS:
+            archivo, tipo = RECURSOS[ruta]
             self._archivo(PANEL / archivo, tipo)
-        elif ruta.path == "/api/estado":
+        elif ruta == "/api/estado":
             self._enviar(IDENTIDAD_PANEL, "text/plain")
-        elif ruta.path == "/api/escenarios":
+        elif ruta == "/api/escenarios":
             self._json([
                 {"id": clave, **asdict(esc)}
                 for clave, esc in self.server.escenarios.items()
             ])
-        elif ruta.path == "/api/configuracion":
+        elif ruta == "/api/configuracion":
             self._json({
                 "configuracion": _configuracion_panel(CONFIGURACION),
             })
-        elif ruta.path == "/api/plan":
-            self._calcular(ruta.query)
-        elif ruta.path == "/favicon.ico":
+        elif ruta == "/favicon.ico":
             self._enviar(b"", "image/x-icon", 204)
         else:
             self._json({"error": "La página solicitada no existe."}, 404)
@@ -242,7 +185,7 @@ class _PeticionPanel(BaseHTTPRequestHandler):
             self._json({"error": "El contenido de la solicitud debe ser JSON válido."}, 400)
             return
         try:
-            plan = _calcular_plan_editado(self.server.escenarios, datos)
+            plan = _calcular_plan(self.server.escenarios, datos)
         except ValueError as error:
             self._json({"error": str(error)}, 400)
             return

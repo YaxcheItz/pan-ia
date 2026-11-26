@@ -1,6 +1,6 @@
 # Optimización de la producción de pan mediante algoritmos genéticos
 
-Prototipo de Inteligencia Artificial del grupo 9SA del Instituto Tecnológico de Oaxaca. Recomienda cuántas piezas producir en una jornada a partir de la masa común disponible, el consumo por pieza y la demanda estimada de cada producto.
+Prototipo de Inteligencia Artificial del grupo 9SA del Instituto Tecnológico de Oaxaca. Recomienda cuántas piezas producir en una jornada a partir de la masa común disponible, el consumo por pieza y la demanda de cada producto. Requiere Python 3.10 o posterior y un navegador para el panel. Usa la biblioteca estándar y funciona sin conexión.
 
 ## Panel para la exposición
 
@@ -10,41 +10,35 @@ En Windows, haz doble clic en [Abrir interfaz.cmd](<Abrir interfaz.cmd>) o ejec�
 & ".\Abrir interfaz.cmd"
 ```
 
-El navegador abre el panel en `http://127.0.0.1:8765/`. Puedes cerrar la terminal mientras lo usas. Si ya está abierto, el lanzador reutiliza el servidor. Después de 30 minutos sin solicitudes, el servidor se cierra. Para volver a usarlo, abre de nuevo el lanzador. El panel funciona con Python y el navegador, sin conexión a internet.
+El lanzador abre `http://127.0.0.1:8765/`, reutiliza el servidor si sigue activo y permite cerrar la terminal. El servidor se cierra tras 30 minutos sin solicitudes. También puedes usar `python -m pan_optimizador interfaz` desde una terminal y pulsar `Ctrl+C` para cerrarlo.
 
-Para ver los mensajes del servidor en la terminal puedes ejecutar `python -m pan_optimizador interfaz`. En ese modo, `Ctrl+C` cierra el panel.
+1. Abre **Escasez moderada con 10 kg**. Con la semilla 42, el plan recomienda 106 piezas, usa 9 980 g y deja 20 g.
+2. Revisa **Plan por producto** y **Evolución del algoritmo**. La vista **Cambios por generación** muestra la población inicial y las mejoras. En **Gráfica**, puedes elegir una métrica, recorrer generaciones y activar **Ver corrida completa**.
+3. En **Parámetros del algoritmo**, cambia la semilla a 84 y pulsa **Aplicar cambios**. El plan alcanza 88 % de cobertura mínima en la generación 4 con la semilla 42 y en la 5 con la 84, con los parámetros iniciales. Usa **Pantalla completa** para proyectar.
 
-1. Empieza con **Escasez moderada con 10 kg**. El panel usa la semilla 42 y muestra 106 piezas, 9 980 g usados y 20 g sobrantes. Puedes editar los gramos disponibles y pulsar **Calcular plan**.
-2. En **Plan por producto**, revisa las cantidades del plan genético. En **Evolución del algoritmo**, la vista **Cambios por generación** muestra la población inicial y las filas donde cambian las métricas. Selecciona **Gráfica** para recorrer generaciones o marcar **Ver corrida completa**.
-3. Revisa la fila de la generación 4, abre **Parámetros del algoritmo** y cambia la semilla de 42 a 84. Pulsa **Aplicar cambios**. Con los parámetros iniciales, la cobertura mínima llega a 88 % en la generación 4 con la semilla 42 y en la 5 con la 84. Usa **Pantalla completa** para proyectar el panel.
+Puedes editar la masa o abrir **Editar productos** para cambiar datos y agregar o quitar panes. **Personalizado** inicia un formulario vacío. **Restaurar datos del escenario** recupera la masa y los productos de origen. **Mostrar casos límite** añade cuatro escenarios al selector.
 
-Abre **Editar productos** para cambiar nombres, gramos por pieza y demandas, o para agregar y quitar panes. Elige **Personalizado** para empezar con un formulario vacío. Al elegir otro escenario se cargan sus datos. **Restaurar datos del escenario** vuelve a aplicar su masa y sus productos originales.
-
-La semilla inicializa la secuencia de sorteos del algoritmo. Con la misma semilla, los mismos datos y los mismos parámetros, puedes repetir la corrida y ver la misma evolución.
-
-En **Parámetros del algoritmo** puedes ajustar la semilla, la población, las generaciones, el tamaño del torneo y los porcentajes de cruce y mutación. El elitismo conserva una copia del mejor plan. Si configuras cero generaciones, el genético elige el mejor plan de la población inicial cuando el caso requiere búsqueda.
-
-El selector muestra los cuatro escenarios de demostración y **Personalizado**. Pulsa **Mostrar casos límite** junto a **Escenario** para incorporar esos casos al selector.
+La semilla inicializa los sorteos del algoritmo. Repite la semilla, los datos, los parámetros y la versión de Python para reproducir la evolución. Con cero generaciones, la búsqueda selecciona el mejor plan de la población inicial.
 
 ## Ejecutar en terminal
 
-Se requiere Python 3.10 o posterior. El proyecto usa la biblioteca estándar. Abre una terminal en la carpeta `proyecto-pan`. En Windows también puedes usar `py -3` en lugar de `python`.
+Ejecuta los comandos desde la carpeta del proyecto. En Windows también puedes usar `py -3`.
 
 ```powershell
 python -m pan_optimizador optimizar datos/escasez_moderada.json --semilla 42
 python -m pan_optimizador comparar datos --semillas 7 21 42 84 123 --salida resultados
-python -m unittest discover -s tests -v
+python -B -m unittest discover -s tests -v
 ```
 
-El primer comando muestra las piezas recomendadas por producto con sus gramos y coberturas. El segundo compara las semillas con el reparto de referencia y genera los tres CSV en la carpeta elegida. El tercero verifica el modelo, los algoritmos, el servidor local y los comandos de terminal.
+`optimizar` muestra el plan por producto, sus coberturas y el reparto de referencia. `comparar` genera los CSV de corridas, detalle por producto y evolución. El comando de pruebas verifica el modelo, los algoritmos, el servidor y la terminal.
 
-Consulta las opciones con `python -m pan_optimizador optimizar --help` y `python -m pan_optimizador comparar --help`. Ambos comandos aceptan `--poblacion`, `--generaciones`, `--torneo`, `--prob-cruce` y `--prob-mutacion`. Sus valores iniciales son 80, 160, 3, 0.85 y 0.15, respectivamente. El elitismo conserva un individuo. Usa punto decimal al escribir las probabilidades.
+Usa `--help` en cada comando para ver sus opciones. `optimizar` y `comparar` aceptan `--poblacion`, `--generaciones`, `--torneo`, `--prob-cruce` y `--prob-mutacion`. Sus valores iniciales son 80, 160, 3, 0.85 y 0.15, respectivamente. El elitismo conserva un plan.
 
 ## Escenarios JSON
 
 Cada archivo UTF-8 contiene `escenario`, `masa_disponible_g` y una lista `productos` con `nombre`, `gramos_por_pieza` y `demanda` por producto. La masa y la demanda son enteros desde cero. Los gramos por pieza son enteros positivos. El orden de la lista define las posiciones del vector y de la tabla.
 
-El comando `comparar` lee los JSON directamente dentro de la carpeta indicada, en orden por archivo. En `datos/` están los cuatro escenarios del anteproyecto. En `datos/casos_limite/` están masa exacta, masa cero, toda la demanda en cero y un solo producto. Puedes probar esa carpeta por separado.
+El comando `comparar` lee los JSON directamente dentro de la carpeta indicada. En `datos/` están los cuatro escenarios del anteproyecto. En `datos/casos_limite/` están masa exacta, masa cero, toda la demanda en cero y un solo producto.
 
 ```powershell
 python -m pan_optimizador comparar datos/casos_limite --semillas 7 21 42 84 123 --salida resultados_limite
@@ -52,16 +46,16 @@ python -m pan_optimizador comparar datos/casos_limite --semillas 7 21 42 84 123 
 
 ## Métodos
 
-La comparación maximiza, en ese orden, la cobertura del producto menos atendido, el total de piezas y los gramos usados. La cobertura se calcula como piezas producidas entre demanda. Se comparan fracciones exactas y se excluyen los productos con demanda cero al calcular la mínima. Los planes con la misma aptitud se eligen de forma estable.
+La aptitud prioriza la cobertura del producto menos atendido, luego el total de piezas y por último los gramos usados. Se comparan fracciones exactas de piezas producidas entre demanda. Los productos con demanda cero se excluyen del cálculo de la cobertura mínima.
 
 - **Reparto proporcional.** Aplica a cada demanda la proporción de masa disponible respecto de la masa necesaria y redondea hacia abajo. Redistribuye el sobrante de una pieza a la vez entre los productos pendientes que caben. Tiene prioridad la menor cobertura, después la pieza más ligera y finalmente el orden del JSON.
 - **Algoritmo genético.** Arranca con el vector de ceros, las cuotas proporcionales redondeadas hacia abajo y candidatos aleatorios. Evoluciona mediante torneos, cruce en un punto interior, mutación local, reparación y elitismo. La redistribución proporcional se ejecuta de forma independiente como referencia. Si toda la demanda cabe o ninguna pieza puede producirse, el algoritmo devuelve directamente la solución y registra solo la generación 0.
 
-La enumeración exhaustiva de los escenarios pequeños está en las pruebas. Sirve para comparar la aptitud observada con la mejor factible. El comando `optimizar` presenta «Mejor plan encontrado» cuando el algoritmo ejecuta la búsqueda.
+Las pruebas incluyen una enumeración de planes factibles para contrastar los resultados del genético en escenarios pequeños.
 
 ## Registros de la comparación
 
-El lote de demostración usa cuatro escenarios y cinco semillas distintas. Las semillas repetidas se toman una sola vez, en el orden en que aparecen. Ejecuta `comparar` para generar esos registros cuando necesites revisar o entregar las corridas. Los CSV son UTF-8, usan punto decimal para los porcentajes e identifican cada escenario por el nombre del archivo JSON. Una cobertura sin denominador aparece como `N/D` en consola y como celda vacía en CSV.
+El lote de demostración usa cuatro escenarios y cinco semillas distintas. Los CSV se regeneran con `comparar`. Se escriben en UTF-8 con punto decimal y una celda vacía para las coberturas que aparecen como `N/D` en el panel y en la consola.
 
 | Archivo | Contenido | Filas de la demostración |
 | --- | --- | ---: |
@@ -69,6 +63,4 @@ El lote de demostración usa cuatro escenarios y cinco semillas distintas. Las s
 | `detalle_productos.csv` | Una fila por producto de cada plan, con piezas, gramos y cobertura. | 72 |
 | `evolucion.csv` | Mejor aptitud de cada generación del genético, incluida la generación 0. | 2 420 |
 
-El reparto proporcional tiene la semilla vacía. La columna `aptitud_minima` guarda una fracción como `22/25`, incluso cuando las métricas de cobertura no aplican y la aptitud interna es `0/1`. Al repetir el lote se regeneran los tres CSV con los resultados de esa ejecución.
-
-La interpretación de la demostración y el ejemplo para exponer están en el [informe de resultados](resultados/informe.md).
+El reparto proporcional tiene la semilla vacía. La columna `aptitud_minima` guarda la fracción exacta, por ejemplo `22/25`.
