@@ -133,7 +133,6 @@ button:disabled, input:disabled, select:disabled { cursor: wait; opacity: .62; }
 .produccion { margin-top: 19px; }
 .titulo-seccion { margin-bottom: 9px; }
 .titulo-seccion h2 { font: 660 1.19rem/1.2 var(--cuerpo); letter-spacing: -.015em; }
-.titulo-seccion p { margin-top: 4px; color: var(--secundario); font-size: .91rem; }
 
 .tabla-contenedor { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -146,8 +145,6 @@ tbody td small, tbody th small { display: block; color: var(--secundario); font-
 tbody td, tbody th { overflow-wrap: anywhere; }
 .col-genetico { color: var(--acento); font-weight: 700; background: var(--resalte); }
 .etiqueta-celda { display: none; }
-
-.veredicto { margin-top: 8px; color: var(--secundario); font-size: .9rem; }
 
 .evolucion {
     margin-block-start: 22px;
@@ -198,7 +195,6 @@ summary::-webkit-details-marker { display: none; }
 .leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--secundario); font-size: .89rem; }
 .leyenda > span { display: inline-flex; align-items: center; gap: 6px; }
 .trazo { flex: none; width: 21px; border-top: 3px solid var(--acento); }
-.trazo-referencia { border-top: 2px dashed var(--secundario); }
 .vista-evolucion { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 12px; color: var(--secundario); font-size: .88rem; }
 .vista-evolucion label { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; color: var(--acento); cursor: pointer; font-weight: 650; }
 .vista-evolucion input { margin: 0; accent-color: var(--acento); }
@@ -246,8 +242,7 @@ summary::-webkit-details-marker { display: none; }
     .tabla-adaptable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     .tabla-adaptable tbody tr { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px 6px; padding-block: 8px; border-bottom: 1px solid var(--borde); }
     .tabla-adaptable tbody th { grid-column: 1 / -1; }
-    .tabla-adaptable tbody td { grid-column: span 2; }
-    .tabla-adaptable tbody td:nth-last-child(-n + 2) { grid-column: span 3; }
+    .tabla-adaptable tbody td { grid-column: span 3; }
     .tabla-adaptable tbody tr > * { text-align: left; border: 0; padding: 4px; }
     .etiqueta-celda { display: block; color: var(--secundario); font-size: .79rem; font-weight: 600; }
 }

@@ -15,7 +15,7 @@ El navegador abre el panel en `http://127.0.0.1:8765/`. Puedes cerrar la termina
 Para ver los mensajes del servidor en la terminal puedes ejecutar `python -m pan_optimizador interfaz`. En ese modo, `Ctrl+C` cierra el panel.
 
 1. Empieza con **Escasez moderada con 10 kg**. El panel usa la semilla 42 y muestra 106 piezas, 9 980 g usados y 20 g sobrantes. Puedes editar los gramos disponibles y pulsar **Calcular plan**.
-2. En **Plan por producto**, revisa las cantidades de cada método. En **Evolución del algoritmo**, la vista **Cambios por generación** muestra la población inicial y las filas donde cambian las métricas. Selecciona **Gráfica** para recorrer generaciones o marcar **Ver corrida completa**.
+2. En **Plan por producto**, revisa las cantidades del plan genético. En **Evolución del algoritmo**, la vista **Cambios por generación** muestra la población inicial y las filas donde cambian las métricas. Selecciona **Gráfica** para recorrer generaciones o marcar **Ver corrida completa**.
 3. Revisa la fila de la generación 4, abre **Parámetros del algoritmo** y cambia la semilla de 42 a 84. Pulsa **Aplicar cambios**. Con los parámetros iniciales, la cobertura mínima llega a 88 % en la generación 4 con la semilla 42 y en la 5 con la 84. Usa **Pantalla completa** para proyectar el panel.
 
 Abre **Editar productos** para cambiar nombres, gramos por pieza y demandas, o para agregar y quitar panes. Elige **Personalizado** para empezar con un formulario vacío. Al elegir otro escenario se cargan sus datos. **Restaurar datos del escenario** vuelve a aplicar su masa y sus productos originales.

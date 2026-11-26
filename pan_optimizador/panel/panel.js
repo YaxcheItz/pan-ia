@@ -17,16 +17,6 @@ const formatosMetricas = {
     piezas_totales: numero,
     masa_usada_g: gramos,
 };
-const titulosVeredicto = {
-    gana: "Gana el genético",
-    empata: "Empate entre los métodos",
-    pierde: "Gana el reparto proporcional",
-};
-const ventajas = {
-    cobertura_minima: "Decide la cobertura del producto menos atendido.",
-    piezas_totales: "A igual cobertura mínima, decide el total de piezas.",
-    masa_usada_g: "A igual cobertura y piezas, decide la masa utilizada.",
-};
 const formulario = porId("controles");
 const selector = porId("escenario");
 const campoMasa = porId("masa");
@@ -96,7 +86,6 @@ function mostrarProductos(productos) {
         celda(fila, producto.nombre, { encabezado: true, detalle: `${gramos(producto.gramos_por_pieza)} por pieza` });
         celda(fila, numero(producto.demanda));
         celda(fila, numero(producto.genetico), { clase: "col-genetico", detalle: `${numero(producto.pendientes)} pendientes` });
-        celda(fila, numero(producto.proporcional));
         celda(fila, gramos(producto.masa_asignada_g));
         celda(fila, porcentaje(producto.cobertura_pct));
         etiquetas.forEach((nombre, indice) => {
@@ -109,11 +98,6 @@ function mostrarProductos(productos) {
         return fila;
     });
     cuerpo.replaceChildren(...filas);
-}
-
-function mostrarVeredicto({ resultado, criterio }) {
-    const motivo = criterio ? ` ${ventajas[criterio]}` : "";
-    texto("veredicto", `${titulosVeredicto[resultado]}.${motivo}`);
 }
 
 function generacionesConCambios(historial) {
@@ -181,7 +165,6 @@ function mostrarPlan(datos) {
     texto("masa-total", `De ${gramos(datos.masa_disponible_g)} disponibles`);
     texto("masa-sobrante", gramos(resultado.masa_sobrante_g));
     mostrarProductos(datos.productos);
-    mostrarVeredicto(datos.comparacion);
     let modo = `${numero(rondas)} ${rondas === 1 ? "generación" : "generaciones"}`;
     if (resultado.trivial) modo = "Cálculo directo";
     else if (!rondas) modo = "Solo población inicial";
@@ -235,9 +218,9 @@ function actualizarGeneracion() {
     dibujarGrafica();
 }
 
-function escalaGrafica(valores, referencia, porcentual) {
-    let inferior = referencia;
-    let superior = referencia;
+function escalaGrafica(valores, porcentual) {
+    let inferior = valores[0];
+    let superior = inferior;
     for (const valor of valores) {
         inferior = Math.min(inferior, valor);
         superior = Math.max(superior, valor);
@@ -280,10 +263,9 @@ function dibujarGrafica() {
 
     const { value: clave, label: nombre } = metricaGrafica.selectedOptions[0];
     const formato = formatosMetricas[clave];
-    const referencia = planActual.proporcional[clave];
     const ultimo = Number(generacion.max);
     const valores = planActual.genetico.historial.slice(0, ultimo + 1).map((medidas) => medidas[clave]);
-    const marcas = escalaGrafica(valores, referencia, clave === "cobertura_minima_pct");
+    const marcas = escalaGrafica(valores, clave === "cobertura_minima_pct");
     const minimo = marcas[0];
     const maximo = marcas.at(-1);
     const etiquetas = marcas.map(formato);
@@ -324,15 +306,6 @@ function dibujarGrafica() {
     }
     ctx.stroke();
 
-    ctx.strokeStyle = tinta;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 5]);
-    ctx.beginPath();
-    ctx.moveTo(x(0), y(referencia));
-    ctx.lineTo(x(ultimo), y(referencia));
-    ctx.stroke();
-    ctx.setLineDash([]);
-
     const seleccionado = Number(generacion.value);
     ctx.strokeStyle = tinta;
     ctx.lineWidth = 1;
@@ -344,9 +317,7 @@ function dibujarGrafica() {
     ctx.beginPath();
     ctx.arc(x(seleccionado), y(valores[seleccionado]), 4, 0, Math.PI * 2);
     ctx.fill();
-    const referenciaFormateada = formato(referencia);
-    texto("referencia-grafica", `Reparto proporcional · ${referenciaFormateada}`);
-    grafica.setAttribute("aria-label", `${nombre} de la generación 0 a la ${numero(ultimo)}. Inicio ${formato(valores[0])}, fin del tramo ${formato(valores.at(-1))}, referencia ${referenciaFormateada}.`);
+    grafica.setAttribute("aria-label", `${nombre} de la generación 0 a la ${numero(ultimo)}. Inicio ${formato(valores[0])}, fin del tramo ${formato(valores.at(-1))}.`);
 }
 
 function leerSolicitud() {
